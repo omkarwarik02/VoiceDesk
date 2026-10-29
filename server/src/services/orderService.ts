@@ -1,7 +1,8 @@
-import { ilike } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, lt, notInArray, type SQL ,ilike } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { customers, orders, orderItems } from "../db/schema.js";
-import type { CreateOrderInput } from "../validation/order.schema.js";
+import type { CreateOrderInput, ListOrdersQuery } from "../validation/order.schema.js";
+import { todayIST } from "../utils/date.js";
 
 export async function createOrder(input:CreateOrderInput){
     return db.transaction(async(tx) =>{
@@ -28,7 +29,7 @@ export async function createOrder(input:CreateOrderInput){
                 dueDate:input.dueDate ?? null,
                 amount:input.amount ?? null,
                 advancePaid:input.advancePaid,
-                isUrgent:input.isurgent,
+                isUrgent:input.isUrgent,
                 notes:input.notes ?? null,
             })
             .returning();
@@ -51,3 +52,52 @@ export async function createOrder(input:CreateOrderInput){
 
     })
 }
+
+export async function listOrders(filters:ListOrdersQuery){
+    const today = todayIST();
+    const conditions: SQL[] = [];
+
+
+    if(filters.status){
+        conditions.push(eq(orders.status, filters.status));
+    }
+
+    if(filters.due === "today"){
+        conditions.push(eq(orders.dueDate, today))
+    }
+       if(filters.due === "upcoming"){
+        conditions.push(gt(orders.dueDate, today))
+    }
+       if(filters.due === "overdue"){
+        conditions.push(lt(orders.dueDate, today));
+        conditions.push(notInArray(orders.status,["delivered", "cancelled"]));
+    }
+
+    const rows = await db 
+        .select({ order: orders, customer:customers})
+        .from(orders)
+        .innerJoin(customers,eq(orders.customerId, customers.id))
+        .where(and(...conditions))
+        .orderBy(asc(orders.dueDate));
+
+        if(rows.length === 0) return [];
+
+
+
+        const orderIds = rows.map((row) => row.order.id);
+        const items = await db
+        .select()
+        .from(orderItems)
+        .where(inArray(orderItems.orderId, orderIds));
+
+
+        return rows.map((row) => ({
+            ...row.order,
+            customer:row.customer,
+            items:items.filter((item) => item.orderId === row.order.id)
+        }));
+
+}
+
+
+
