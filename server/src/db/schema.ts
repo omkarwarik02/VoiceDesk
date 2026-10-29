@@ -33,7 +33,7 @@ export const orders = pgTable("orders", {
     .references(() => customers.id),
   dueDate: date("due_date"),
   amount: integer("amount"),
-  advancepaid: integer("advance_paid").notNull().default(0),
+  advancePaid: integer("advance_paid").notNull().default(0),
   isUrgent: boolean("is_urgent").notNull().default(false),
   status: orderStatus("status").notNull().default("new"),
   notes: text("notes"),
