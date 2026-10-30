@@ -16,12 +16,21 @@ export const createOrderInput = z.object({
 )
     .min(1,"An order needs at least one item")
 });
+export const OrderStatus = z.enum(["new", "in_progress", "ready", "delivered", "cancelled"]);
 
 export const ListOrdersQuery = z.object({
-    status:z.enum(["new", "in_progress", "ready", "delivered", "cancelled"]).optional(),
+    status:OrderStatus.optional(),
     due:z.enum(["today", "overdue", "upcoming"]).optional(),
 });
 
-export type ListOrdersQuery = z.infer<typeof ListOrdersQuery>;
+export const OrderIdParams = z.object({
+    id:z.coerce.number().int().positive(),
+});
 
+export const UpdateStatusInput = z.object({
+    status:OrderStatus,
+})
+
+export type OrderStatusValue = z.infer<typeof OrderStatus>;
+export type ListOrdersQuery = z.infer<typeof ListOrdersQuery>;
 export type CreateOrderInput = z.infer<typeof createOrderInput>;
