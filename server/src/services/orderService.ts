@@ -102,12 +102,19 @@ export async function listOrders(filters: ListOrdersQuery) {
     .from(orderItems)
     .where(inArray(orderItems.orderId, orderIds));
 
+  const itemsByOrder = new Map<number, typeof items>();
+
+  for(const item of items){
+    const list = itemsByOrder.get(item.orderId) ?? [];
+    list.push(item);
+    itemsByOrder.set(item.orderId, list)
+  }
+
+
   return rows.map((row) => ({
     ...row.order,
     customer: row.customer,
-    items: items.filter(
-      (item: typeof orderItems.$inferSelect) => item.orderId === row.order.id,
-    ),
+    items: itemsByOrder.get(row.order.id) ?? [],
     priority: computePriority(row.order, row.customer.isVip, today)
   }));
 }

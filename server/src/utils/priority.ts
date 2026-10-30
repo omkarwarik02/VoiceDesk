@@ -26,19 +26,22 @@ export function computePriority(
 
   if (order.dueDate) {
     const days = daysUntil(order.dueDate, today);
-    if (days < 0) {
-      score += 50;
-      reasons.push("overdue");
-    } else if (days === 0) {
-      score += 40;
-      reasons.push("due today");
-    } else if (days <= 3) {
-      score += 20;
-      reasons.push(`due in ${days} days`);
-    } else if (days <= 7) {
-      score += 10;
-      reasons.push(`due in ${days} days`);
-    }
+   if (days < 0) {
+  score += 50;
+  reasons.push("overdue");
+} else if (days === 0) {
+  score += 45;
+  reasons.push("due today");
+} else if (days === 1) {
+  score += 30;
+  reasons.push("due tomorrow");
+} else if (days <= 3) {
+  score += 20;
+  reasons.push(`due in ${days} days`);
+} else if (days <= 7) {
+  score += 10;
+  reasons.push(`due in ${days} days`);
+}
   }
 
   if (order.isUrgent) {
