@@ -17,6 +17,7 @@ import type {
   OrderStatusValue,
 } from "../validation/order.schema.js";
 import { todayIST } from "../utils/date.js";
+import { computePriority } from "../utils/priority.js";
 
 export async function createOrder(input: CreateOrderInput) {
   return db.transaction(async (tx) => {
@@ -107,6 +108,7 @@ export async function listOrders(filters: ListOrdersQuery) {
     items: items.filter(
       (item: typeof orderItems.$inferSelect) => item.orderId === row.order.id,
     ),
+    priority: computePriority(row.order, row.customer.isVip, today)
   }));
 }
 
