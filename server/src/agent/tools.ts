@@ -1,6 +1,6 @@
 import {tool} from "langchain";
-import { ListOrdersQuery } from "../validation/order.schema.js";
-import { listOrders } from "../services/orderService.js";
+import { ListOrdersQuery , OrderIdParams } from "../validation/order.schema.js";
+import { listOrders, getOrder } from "../services/orderService.js";
 
 
 export const  listOrdersTool = tool(
@@ -27,7 +27,7 @@ export const  listOrdersTool = tool(
 
 
         } catch (err) {
-            return `Error: listordersTool failed:${err instanceof Error ? err.message:String(err)}`
+            return `Error: list_orders failed:${err instanceof Error ? err.message:String(err)}`
 
         }
 
@@ -38,4 +38,41 @@ export const  listOrdersTool = tool(
         schema:ListOrdersQuery,
     }
 
+)
+
+export const  getOrderTool = tool(
+    async({id}) =>{
+        try{
+        const result = await getOrder(id);
+        if(!result.ok){
+            return `Order ${id} not found`;
+        }
+
+        const o = result.order;
+
+        const summary = {
+             id: o.id,
+                    customer: o.customer.name,
+                    phone:o.customer.phone,
+                    amount:o.amount,
+                    advancePaid:o.advancePaid,
+                    notes:o.notes,
+                    dueDate:o.dueDate,
+                    status:o.status,
+                    items:o.items.map((i)=> `${i.quantity} ${i.unit ?? ""} ${i.name}`),
+                    priority:o.priority?.level ?? null,
+                    reasons:o.priority?.reasons ?? []
+
+        }
+        return JSON.stringify(summary);
+    } catch(err){
+         return `Error: get_order failed:${err instanceof Error ? err.message:String(err)}`
+    }
+
+    },
+    {
+        name:"get_order",
+        description:"Returns full details of one order by its id: customer name and phone, items, due date, status, amount, advance paid, notes, and priority (level + reasons). Use it when the user asks about one specific order by number, or wants more details about an order found with list_orders.",
+        schema:OrderIdParams,
+    }
 )
