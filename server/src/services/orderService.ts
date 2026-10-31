@@ -86,6 +86,9 @@ export async function listOrders(filters: ListOrdersQuery) {
     conditions.push(lt(orders.dueDate, today));
     conditions.push(notInArray(orders.status, ["delivered", "cancelled"]));
   }
+  if(filters.customer){
+    conditions.push(ilike(customers.name, `%${filters.customer}%`))
+  }
 
   const rows = await db
     .select({ order: orders, customer: customers })
@@ -138,14 +141,14 @@ export async function updateOrderStatus(
     .limit(1);
 
   if (!existing) {
-    return { ok: false, code: "NOT_FOUND" as const };
+    return { ok: false as const, code: "NOT_FOUND" as const };
   }
 
   const allowed = ALLOWED_TRANSITIONS[existing.status];
   if (!allowed.includes(newStatus)) {
     return {
       ok: false as const,
-      code: "NOT_FOUND" as const,
+      code: "INVALID_TRANSITION" as const,
       from: existing.status,
     };
   }

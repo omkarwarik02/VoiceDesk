@@ -21,6 +21,7 @@ export const OrderStatus = z.enum(["new", "in_progress", "ready", "delivered", "
 export const ListOrdersQuery = z.object({
     status:OrderStatus.optional(),
     due:z.enum(["today", "overdue", "upcoming"]).optional(),
+    customer:z.string().trim().min(1).optional(),
 });
 
 export const OrderIdParams = z.object({
