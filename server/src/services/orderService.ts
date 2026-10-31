@@ -161,3 +161,35 @@ export async function updateOrderStatus(
 
   return { ok: true as const, order: updated };
 }
+
+export async function getOrder(id:number){
+    const today = todayIST();
+
+  const [row] = await db
+    .select({order:orders, customer:customers})
+    .from(orders)
+    .innerJoin(customers,eq(orders.customerId,customers.id))
+    .where(eq(orders.id, id))
+    .limit(1)
+
+    if (!row) {
+    return { ok: false as const, code: "NOT_FOUND" as const };
+  }
+  const items = await db
+    .select()
+    .from(orderItems)
+    .where(eq(orderItems.orderId, id))
+    
+  
+  
+  return{
+    ok: true as const,
+    order:{...row.order,
+    customer:row.customer,
+    items: (items),
+    priority: computePriority(row.order, row.customer.isVip, today),
+    }
+  }
+
+
+}

@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { z } from "zod";
+import { number, z } from "zod";
 import {
   createOrderInput,
   ListOrdersQuery,
@@ -10,7 +10,12 @@ import {
   createOrder,
   listOrders,
   updateOrderStatus,
+  getOrder
 } from "../services/orderService.js";
+import { error } from "node:console";
+import { id } from "zod/v4/locales";
+
+
 
 export async function createOrderHandler(req: Request, res: Response) {
   const parsed = createOrderInput.safeParse(req.body);
@@ -34,6 +39,13 @@ export async function listOrdersHandler(req: Request, res: Response) {
   const orders = await listOrders(parsed.data);
   res.json({ ok: true, count: orders.length, orders });
 }
+
+
+
+
+
+
+
 
 export async function updateOrderStatusHandler(req: Request, res: Response) {
   const params = OrderIdParams.safeParse(req.params);
@@ -63,4 +75,20 @@ export async function updateOrderStatusHandler(req: Request, res: Response) {
     return;
   }
   res.json({ ok: true, order: result.order });
+}
+
+export async function getOrderHandler(req:Request,res:Response) {
+const params = OrderIdParams.safeParse(req.params);
+if(!params.success){
+  res.status(400).json({ok:false, error:z.prettifyError(params.error)});
+  return;
+}
+const result = await getOrder(params.data.id);
+if(!result.ok){ 
+   res.status(404).json({ok: false, error:`Order ${params.data.id} not found`})
+  return;
+
+}
+  res.json({ ok: true, order: result.order });
+
 }
