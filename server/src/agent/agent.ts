@@ -1,4 +1,4 @@
-import "dotenv/config";              
+import "dotenv/config";
 import {
   StateSchema,
   MessagesValue,
@@ -19,7 +19,6 @@ import { z } from "zod";
 import type { StructuredToolInterface } from "@langchain/core/tools";
 import { VoiceDeskTools } from "./tools.js";
 import { todayIST } from "../utils/date.js";
-
 
 const AgentState = new StateSchema({
   messages: MessagesValue,
@@ -44,10 +43,12 @@ Keep answers short and practical: use a short list for multiple orders, not para
 
 If a request is unclear, ask one short question. For example, if a name matches more than one customer, or a customer has several orders.
 
-You cannot create or change orders yet. If asked, say this feature is coming soon, and never pretend you did it.`;
+You cannot create or change orders yet. If asked, say this feature is coming soon, and never pretend you did it.
+Do not use tables, bold, or any markdown. Write plain text: one short line per order starting with ‘- ‘, at most 5 lines.`;
 }
 
 const model = new ChatGroq({
+  apiKey: process.env.GROQ_API_KEY,
   model: "openai/gpt-oss-120b",
   temperature: 0,
 });
@@ -55,17 +56,20 @@ const model = new ChatGroq({
 const modelWithTools = model.bindTools(VoiceDeskTools);
 
 const modelRetryPolicy = {
-  maxAttempts:3,
-  initialInterval:10_000,
-  backoffFactor:2,
-  retryOn:(err:unknown) => err instanceof Error && err.message.includes("429")
+  maxAttempts: 3,
+  initialInterval: 10_000,
+  backoffFactor: 2,
+  retryOn: (err: unknown) =>
+    err instanceof Error && err.message.includes("429"),
+};
+
+function callKey(call: { name: string; args: unknown }): string {
+  return `${call.name}:${JSON.stringify(call.args)}`;
 }
 
-function callKey(call: { id?: string; name: string; args: unknown }): string {
-  return call.id ?? JSON.stringify([call.name, call.args]);
-}
-
-const toolsByName: Record<string, StructuredToolInterface> = Object.fromEntries(VoiceDeskTools.map((t) =>[t.name, t]));
+const toolsByName: Record<string, StructuredToolInterface> = Object.fromEntries(
+  VoiceDeskTools.map((t) => [t.name, t]),
+);
 
 const agentNode: GraphNode<typeof AgentState> = async (state) => {
   const response = await modelWithTools.invoke([
@@ -87,76 +91,74 @@ const toolsNode: GraphNode<typeof AgentState> = async (state) => {
     }
   }
 
-  const results : ToolMessage[] =[];
-  for(const call of last.tool_calls){
+  const results: ToolMessage[] = [];
+  for (const call of last.tool_calls) {
     const key = callKey(call);
 
-    let content : string;
+    let content: string;
 
-    if(seen.has(key)){
-        content = "You already made this exact call. Use the earlier result instead of repeating.";
+    if (seen.has(key)) {
+      content =
+        "You already made this exact call. Use the earlier result instead of repeating.";
     } else {
-        seen.add(key);
-        const tool = toolsByName[call.name];
+      seen.add(key);
+      const tool = toolsByName[call.name];
 
-        if(!tool){
-                content = `Error: unknown tool "${call.name}". Available tools: ${Object.keys(toolsByName).join(", ")}.`;
-        } else {
-            try{
-            content = String(await tool.invoke(call.args));
-            } catch(err){
-                 content = `Error: ${call.name} failed: ${err instanceof Error ? err.message : String(err)}`;
-            }
+      if (!tool) {
+        content = `Error: unknown tool "${call.name}". Available tools: ${Object.keys(toolsByName).join(", ")}.`;
+      } else {
+        try {
+          content = String(await tool.invoke(call.args));
+        } catch (err) {
+          content = `Error: ${call.name} failed: ${err instanceof Error ? err.message : String(err)}`;
         }
+      }
     }
-     results.push(
-    new ToolMessage({
+    results.push(
+      new ToolMessage({
         content,
         tool_call_id: call.id ?? "",
-        name:call.name,
-    })
-  )
+        name: call.name,
+      }),
+    );
   }
-  return { messages:results, toolCallCount:last.tool_calls.length}
- 
+  return { messages: results, toolCallCount: last.tool_calls.length };
 };
 
-const finalAnswer: GraphNode<typeof AgentState> = async (state) =>{
+const finalAnswer: GraphNode<typeof AgentState> = async (state) => {
   const response = await model.invoke([
     new SystemMessage(buildSystemPrompt()),
     ...state.messages,
     new HumanMessage(
-       "You have no tool calls left. Answer with what you have now.",
+      "You have no tool calls left. Answer with what you have now.",
     ),
   ]);
-  return { messages:[response]};
-}
+  return { messages: [response] };
+};
 
 const MAX_TOOL_CALLS = 4;
 
 const routeAfterAgent = (state: typeof AgentState.State) => {
   const last = state.messages.at(-1);
-  if(last && AIMessage.isInstance(last) && last.tool_calls?.length){
+  if (last && AIMessage.isInstance(last) && last.tool_calls?.length) {
     return "tools";
   }
   return END;
-}
+};
 
 const routeAfterTools = (state: typeof AgentState.State) => {
-  if(state.toolCallCount >= MAX_TOOL_CALLS ){
-      return "final_answer";
+  if (state.toolCallCount >= MAX_TOOL_CALLS) {
+    return "final_answer";
   }
   return "agent";
 };
 
-
 export const graph = new StateGraph(AgentState)
-.addNode("agent", agentNode,{retryPolicy:modelRetryPolicy})
-.addNode("tools",toolsNode)
-.addNode("final_answer", finalAnswer, {retryPolicy:modelRetryPolicy})
-.addEdge(START, "agent")
-.addConditionalEdges("agent", routeAfterAgent,["tools", END])
-.addConditionalEdges("tools", routeAfterTools,["agent","final_answer"])
-.addEdge("final_answer", END)
-.compile()
-
+  .addNode("agent", agentNode, { retryPolicy: modelRetryPolicy })
+  .addNode("tools", toolsNode)
+  .addNode("final_answer", finalAnswer, { retryPolicy: modelRetryPolicy })
+  .addEdge(START, "agent")
+  .addConditionalEdges("agent", routeAfterAgent, ["tools", END])
+  .addConditionalEdges("tools", routeAfterTools, ["agent", "final_answer"])
+  .addEdge("final_answer", END)
+  .compile();

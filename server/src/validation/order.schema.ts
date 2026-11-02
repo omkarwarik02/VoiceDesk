@@ -23,6 +23,11 @@ export const ListOrdersQuery = z.object({
     due:z.enum(["today", "overdue", "upcoming"]).optional(),
     customer:z.string().trim().min(1).optional(),
 });
+export const ListOrdersToolInput = z.object({
+    status:OrderStatus.nullish(),
+    due:z.enum(["today", "overdue", "upcoming"]).nullish(),
+     customer: z.string().nullish(),
+});
 
 export const OrderIdParams = z.object({
     id:z.coerce.number().int().positive(),

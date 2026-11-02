@@ -1,11 +1,16 @@
 import {tool} from "langchain";
-import { ListOrdersQuery , OrderIdParams } from "../validation/order.schema.js";
+import { ListOrdersToolInput , OrderIdParams } from "../validation/order.schema.js";
 import { listOrders, getOrder } from "../services/orderService.js";
 
 
 export const  listOrdersTool = tool(
-    async (filters) => {
+    async (input) => {
         try{
+            const filters ={
+                status:input.status ?? undefined,
+                due:input.due ?? undefined,
+                customer:input.customer?.trim() || undefined,
+            }
 
             const orders = await listOrders(filters);
             if(orders.length === 0){
@@ -35,7 +40,7 @@ export const  listOrdersTool = tool(
     {
         name:"list_orders",
         description:"Returns the shop's orders with order id, customer name, items, due date, status and priority (level + reasons), sorted by due date. Optional filters: due can be today (India time), overdue (past due, not delivered or cancelled) or upcoming (after today); status can be new, in_progress, ready, delivered or cancelled; customer filters by customer name (partial and case-insensitive, so 'mehta' matches 'Mehta Traders'). No filters returns all orders. Use it for questions about what is due, late, pending, ready, most urgent, or about a specific customer's orders.",
-        schema:ListOrdersQuery,
+        schema:ListOrdersToolInput,
     }
 
 )
