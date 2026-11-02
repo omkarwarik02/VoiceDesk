@@ -76,3 +76,5 @@ export const  getOrderTool = tool(
         schema:OrderIdParams,
     }
 )
+
+export const VoiceDeskTools = [listOrdersTool,getOrderTool];
