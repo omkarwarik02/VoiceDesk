@@ -10,9 +10,9 @@ export async function askAgentHandler(req:Request, res:Response){
      return;
     }
 
-    const result = await askAgent(parsed.data.message);
+    const result = await askAgent(parsed.data.message,parsed.data.threadId);
 
-    res.status(201).json({ ok: true, ...result });
+    res.status(200).json({ ok: true, ...result });
 
     
 }

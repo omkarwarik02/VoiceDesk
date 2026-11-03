@@ -19,6 +19,11 @@ import { z } from "zod";
 import type { StructuredToolInterface } from "@langchain/core/tools";
 import { VoiceDeskTools } from "./tools.js";
 import { todayIST } from "../utils/date.js";
+import { PostgresSaver} from "@langchain/langgraph-checkpoint-postgres"
+import { pool } from "../db/client.js";
+
+
+export const checkpointer = new PostgresSaver(pool)
 
 const AgentState = new StateSchema({
   messages: MessagesValue,
@@ -161,4 +166,4 @@ export const graph = new StateGraph(AgentState)
   .addConditionalEdges("agent", routeAfterAgent, ["tools", END])
   .addConditionalEdges("tools", routeAfterTools, ["agent", "final_answer"])
   .addEdge("final_answer", END)
-  .compile();
+  .compile({ checkpointer});

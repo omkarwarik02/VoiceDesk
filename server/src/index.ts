@@ -5,6 +5,7 @@ import { sql } from "drizzle-orm";
 import { db } from "./db/client.js";
 import { orderRouter } from "./routes/order.routes.js";
 import { agentRouter } from "./routes/agent.route.js";
+import { checkpointer } from "./agent/agent.js";
 import express, { type Request, type Response, type NextFunction } from "express";
 
 const app = express();
@@ -26,7 +27,9 @@ app.use((err:unknown, _req:Request, res:Response, _next:NextFunction)=>{
   console.error(err);
   res.status(500).json({ ok: false, error: "Something went wrong"});
 
-})
+});
+
+await checkpointer.setup();
 
 app.listen(env.PORT, () => {
   console.log(`✅ Server running on http://localhost:${env.PORT}`);
