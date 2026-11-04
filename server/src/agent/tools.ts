@@ -1,6 +1,8 @@
 import {tool} from "langchain";
-import { ListOrdersToolInput , OrderIdParams } from "../validation/order.schema.js";
-import { listOrders, getOrder } from "../services/orderService.js";
+import { ListOrdersToolInput , OrderIdParams, CreateOrderToolInput, createOrderInput, ResumeDecision } from "../validation/order.schema.js";
+import { listOrders, getOrder, createOrder } from "../services/orderService.js";
+import { z } from "zod";
+import { interrupt, isGraphInterrupt } from "@langchain/langgraph";
 
 
 export const  listOrdersTool = tool(
@@ -82,4 +84,68 @@ export const  getOrderTool = tool(
     }
 )
 
-export const VoiceDeskTools = [listOrdersTool,getOrderTool];
+export const createOrderTool = tool(
+    async( input) =>{
+        try{
+
+            const draft = {
+                customerName:input.customerName,
+                customerPhone:input.customerPhone ?? undefined,
+                dueDate:input.dueDate ?? undefined,
+                amount:input.amount ?? undefined,
+                advancePaid:input.advancePaid ?? undefined,
+                isUrgent:input.isUrgent ?? undefined,
+                notes:input.notes ?? undefined,
+                items:input.items.map((item)=>({
+                    name:item.name,
+                    quantity:item.quantity,
+                    unit:item.unit ?? undefined
+                })),
+            }
+            const parsed = createOrderInput.safeParse(draft);
+            if(!parsed.success){
+                 return `Cannot create the order: ${z.prettifyError(parsed.error)} Ask the user to provide or correct this.`;
+            }
+            const raw = interrupt({ type:"order_approval", draft:parsed.data});
+
+            const descision = ResumeDecision.safeParse(raw);
+            if(!descision.success){
+                return "The owner's decision was invalid, so nothing was saved.";
+            }
+            if(descision.data.action === "cancel"){
+                  return "The owner cancelled this order. Nothing was saved.";
+            }
+            const finalOrder = descision.data.action === "edit" ? descision.data.draft : parsed.data;
+
+            const order = await createOrder(finalOrder);
+            return `Order #${order.id} created for ${order.customer.name}`
+
+        }catch(err){
+            if(isGraphInterrupt(err)) throw err;
+             return `Error: create_order failed: ${err instanceof Error ? err.message : String(err)}`;
+        }
+
+    },
+{
+    name: "create_order",
+    description: "Creates a new order for the shop. Calling it shows the owner a draft for approval; the order is saved only after the owner approves (or edits) it, and nothing is saved if they cancel. Only call it when you know the customer name and at least one item with a quantity; if anything required is missing, ask the user first instead of guessing. Convert relative dates (aaj, kal, parso, weekdays) into YYYY-MM-DD using today's date. Set isUrgent to true only if the user says it is urgent (urgent, jaldi, aaj hi). Leave out any field you don't know instead of sending null or a guess. After the tool returns, tell the user the result: the new order number, or that it was cancelled.",
+    schema: CreateOrderToolInput,
+  },
+
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+export const VoiceDeskTools = [listOrdersTool,getOrderTool,createOrderTool];

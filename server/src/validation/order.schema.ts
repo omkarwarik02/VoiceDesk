@@ -16,6 +16,12 @@ export const createOrderInput = z.object({
 )
     .min(1,"An order needs at least one item")
 });
+
+export const ResumeDecision = z.discriminatedUnion("action",[
+    z.object({ action:z.literal("approve")}),
+    z.object({action:z.literal("cancel")}),
+    z.object({action:z.literal("edit"),draft:(createOrderInput)})
+])
 export const OrderStatus = z.enum(["new", "in_progress", "ready", "delivered", "cancelled"]);
 
 export const ListOrdersQuery = z.object({
@@ -37,6 +43,21 @@ export const UpdateStatusInput = z.object({
     status:OrderStatus,
 })
 
+export const CreateOrderToolInput = z.object({
+       customerName:z.string().trim(),
+    customerPhone:z.string().trim().nullish(),
+    dueDate:z.string().nullish(),
+    amount:z.number().nullish(),
+    advancePaid:z.number().nullish(),
+    isUrgent:z.boolean().nullish(),
+    notes:z.string().nullish(),
+    items:z.array(z.object({
+        name:z.string().trim(),
+        quantity:z.number(),
+        unit:z.string().nullish(),
+    }))
+})
+export type ResumeDecision = z.infer<typeof ResumeDecision>;
 export type OrderStatusValue = z.infer<typeof OrderStatus>;
 export type ListOrdersQuery = z.infer<typeof ListOrdersQuery>;
 export type CreateOrderInput = z.infer<typeof createOrderInput>;

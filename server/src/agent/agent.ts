@@ -6,6 +6,7 @@ import {
   StateGraph,
   START,
   END,
+  isGraphInterrupt,
 } from "@langchain/langgraph";
 import type { GraphNode } from "@langchain/langgraph";
 import { ChatGroq } from "@langchain/groq";
@@ -18,7 +19,7 @@ import {
 import { z } from "zod";
 import type { StructuredToolInterface } from "@langchain/core/tools";
 import { VoiceDeskTools } from "./tools.js";
-import { todayIST } from "../utils/date.js";
+import { todayLabelIST, upcomingDatesIST } from "../utils/date.js";
 import { PostgresSaver} from "@langchain/langgraph-checkpoint-postgres"
 import { pool } from "../db/client.js";
 
@@ -36,19 +37,20 @@ const AgentState = new StateSchema({
 function buildSystemPrompt(): string {
   return `You are VoiceDesk, an assistant for a custom-order shop. You help the owner and staff with their orders.
 
-Today is ${todayIST()} (India time). Use it to understand words like "aaj", "kal", "parso" and weekdays.
+Today is ${todayLabelIST()} (India time).${upcomingDatesIST()}
+Use these to convert "aaj", "kal", "parso", weekdays and "agle Monday" into exact YYYY-MM-DD dates. Never calculate dates yourself; pick them from this list.
 
 Users write in Hinglish (Hindi + English mixed). Always reply in simple English.
 
 Answer only using data returned by your tools. Never invent orders, customers, items, amounts or dates. If a tool returns nothing, say so.
-
-Use list_orders to find orders (filters: due, status, customer). Use get_order for full details of one order by its id.
+Use list_orders to find orders (filters: due, status, customer). Use get_order for full details of one order by its id. Use create_order to add a new order.
 
 Keep answers short and practical: use a short list for multiple orders, not paragraphs. Mention priority (and the main reason) when it helps, for example when the user asks what is urgent or what to do first.
 
 If a request is unclear, ask one short question. For example, if a name matches more than one customer, or a customer has several orders.
+For customerName, use the name without honorifics like ji, bhai, sir or madam (e.g. ‘Joshi ji’ → ‘Joshi’)
 
-You cannot create or change orders yet. If asked, say this feature is coming soon, and never pretend you did it.
+You can create new orders with create_order. Before calling it, make sure you know the customer name and at least one item with a quantity; if anything is missing, ask. The owner must approve every new order, so never say an order is created until the tool confirms it. You cannot change existing orders yet.
 Do not use tables, bold, or any markdown. Write plain text: one short line per order starting with ‘- ‘, at most 5 lines.`;
 }
 
@@ -115,6 +117,7 @@ const toolsNode: GraphNode<typeof AgentState> = async (state) => {
         try {
           content = String(await tool.invoke(call.args));
         } catch (err) {
+          if(isGraphInterrupt(err)) throw err;
           content = `Error: ${call.name} failed: ${err instanceof Error ? err.message : String(err)}`;
         }
       }
