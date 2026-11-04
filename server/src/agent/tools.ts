@@ -1,8 +1,9 @@
 import {tool} from "langchain";
-import { ListOrdersToolInput , OrderIdParams, CreateOrderToolInput, createOrderInput, ResumeDecision } from "../validation/order.schema.js";
-import { listOrders, getOrder, createOrder } from "../services/orderService.js";
+import { ListOrdersToolInput , OrderIdParams, CreateOrderToolInput, createOrderInput, ResumeDecision, UpdateStatusToolInput } from "../validation/order.schema.js";
+import { listOrders, getOrder, createOrder, updateOrderStatus } from "../services/orderService.js";
 import { z } from "zod";
 import { interrupt, isGraphInterrupt } from "@langchain/langgraph";
+import { ALLOWED_TRANSITIONS } from "../services/orderService.js";
 
 
 export const  listOrdersTool = tool(
@@ -134,6 +135,61 @@ export const createOrderTool = tool(
 
 )
 
+export const updateStatusTool = tool(                                   // ← renamed
+  async ({ id, status }) => {
+    try {                                                               // ← try starts
+      const result = await getOrder(id);
+      if (!result.ok) {
+        return `Order #${id} not found. Use list_orders to find the correct order.`;
+      }
+
+      const current = result.order.status;
+      const allowed = ALLOWED_TRANSITIONS[current];
+      if (!allowed.includes(status)) {
+        return `Cannot change order #${id} from ${current} to ${status}. Allowed: ${allowed.length ? allowed.join(", ") : "none (final status)"}.`;
+      }
+
+      const raw = interrupt({
+        type: "status_approval",
+        orderId: id,
+        customerName: result.order.customer.name,
+        from: current,
+        to: status,
+      });
+
+      const decision = ResumeDecision.safeParse(raw);
+      if (!decision.success) {
+        return `The owner's decision was invalid. Nothing changed; order #${id} is still ${current}.`;
+      }
+      if (decision.data.action === "cancel") {
+        return `The owner rejected this change. Order #${id} is still ${current}.`;      // ← clearer
+      }
+      if (decision.data.action === "edit") {
+        return `Editing is not supported for status changes. Nothing changed; order #${id} is still ${current}. Ask the owner which status they want.`;  // ← "status changed" removed
+      }
+
+      const updated = await updateOrderStatus(id, status);
+      if (!updated.ok) {
+        return `Could not update order #${id}: ${updated.code}. Nothing changed.`;
+      }
+
+      return `Order #${id} (${result.order.customer.name}) changed from ${current} to ${status}.`;  // ← success line
+    } catch (err) {                                                     // ← catch
+      if (isGraphInterrupt(err)) throw err;
+      return `Error: update_status failed: ${err instanceof Error ? err.message : String(err)}`;
+    }
+  },
+  {
+    name: "update_status",
+    description: "Change the status of an existing order. Needs the order id. " +
+  "If the owner gives a customer name, item or date instead of an id, first use list_orders to find the order; " +
+  "if more than one order matches, ask the owner which one before calling this tool. " +
+  "Map the owner's words to a status: 'kaam shuru' / 'start' = in_progress, 'ready' / 'ban gaya' = ready, " +
+  "'de diya' / 'deliver ho gaya' = delivered, 'cancel' = cancelled. " +
+  "The owner must approve the change before it is saved. After the tool returns, tell the owner exactly what the result says.",
+    schema: UpdateStatusToolInput
+  }
+);
 
 
 
@@ -148,4 +204,5 @@ export const createOrderTool = tool(
 
 
 
-export const VoiceDeskTools = [listOrdersTool,getOrderTool,createOrderTool];
+
+export const VoiceDeskTools = [listOrdersTool,getOrderTool,createOrderTool,updateStatusTool];

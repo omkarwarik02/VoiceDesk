@@ -57,6 +57,13 @@ export const CreateOrderToolInput = z.object({
         unit:z.string().nullish(),
     }))
 })
+
+export const UpdateStatusToolInput = z.object({
+    id:z.coerce.number(),
+    status:OrderStatus
+})
+
+
 export type ResumeDecision = z.infer<typeof ResumeDecision>;
 export type OrderStatusValue = z.infer<typeof OrderStatus>;
 export type ListOrdersQuery = z.infer<typeof ListOrdersQuery>;

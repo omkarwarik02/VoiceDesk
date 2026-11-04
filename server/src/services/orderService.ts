@@ -122,7 +122,7 @@ export async function listOrders(filters: ListOrdersQuery) {
   }));
 }
 
-const ALLOWED_TRANSITIONS: Record<OrderStatusValue, OrderStatusValue[]> = {
+export const ALLOWED_TRANSITIONS: Record<OrderStatusValue, OrderStatusValue[]> = {
   new: ["in_progress", "cancelled"],
   in_progress: ["ready", "cancelled"],
   ready: ["delivered", "in_progress"],

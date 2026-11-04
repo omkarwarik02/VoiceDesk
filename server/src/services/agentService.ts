@@ -12,7 +12,7 @@ async function buildResult(result:{messages:BaseMessage[]}, id:string){
     const value = pending[0]!.value as {draft:unknown}
     return{
       status:"needs_approval" as const,
-      draft:value.draft,
+      approval:pending[0]!.value,
       threadId:id,
     };
   }
