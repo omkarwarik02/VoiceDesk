@@ -1,1 +1,25 @@
 @import "tailwindcss";
+
+@theme {
+  /* colours */
+  --color-bg: #060606;                     /* page background */
+  --color-surface: #0f1115;                /* cards, panels */
+  --color-line: rgb(255 255 255 / 0.1);    /* borders */
+  --color-fg: #f8fafc;                     /* main text */
+  --color-muted: #94a3b8;                  /* secondary text */
+  --color-accent: #2dd4bf;                 /* teal: buttons, highlights */
+
+  /* fonts */
+  --font-display: "Clash Display", sans-serif;
+  --font-sans: "Satoshi", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+html {
+  color-scheme: dark;
+  @apply font-sans;
+}
+
+body {
+  @apply bg-bg text-fg;
+}
