@@ -3,8 +3,10 @@ import { AgentMessageInput } from "../validation/agent.schema.js";
 import { z } from "zod"
 import { transcribe } from "../services/transcribeService.js";
 import { askAgent } from "../services/agentService.js";
+import getUserId from "../utils/auth.js";
 
 export async function voiceHandler(req:Request, res:Response){
+    const userId = getUserId(req);
     if(!req.file){
         return res.status(400).json({ ok: false, error: "No audio file. Send it in a form field named 'audio'." });
     }
@@ -18,6 +20,6 @@ export async function voiceHandler(req:Request, res:Response){
         return res.status(400).json({ ok:false, error:"Couldn't hear anything. Please try again."});
     }
 
-    const result = await askAgent(transcript, parsed.data.threadId);
+    const result = await askAgent(userId,transcript, parsed.data.threadId);
      return res.json({ ok: true, transcript, ...result });
 }

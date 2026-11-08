@@ -18,8 +18,8 @@ const steps = [
 
 export default function HowItWorks(){
     return(
-        <section id="how-it-works" aria-labelledby="how-title" className="px-6 py-16">
-            <div className="mx-auto max-w-6xl pt-16 text-center">
+        <section id="how-it-works" aria-labelledby="how-title" className="px-6 py-24 md:py-32">
+            <div className="mx-auto max-w-6xl text-center">
                 <p className="text-xs uppercase tracking-[0.2em] text-muted">How it works</p>
                 <h2 id="how-title" className="mt-5 font-display text-4xl font-semibold">From a sentence to an order in three steps.</h2>
             <div className="mt-16 grid gap-12 text-left md:grid-cols-3 md:gap-0 md:divide-x md:divide-line">

@@ -49,8 +49,8 @@ const features: Feature[] = [
 export default function Feature(){
 
     return(
-        <section id="features" aria-labelledby="features-title" className="px-6 pb-16">
-            <div className="mx-auto max-w-6xl pt-16 text-center">
+        <section id="features" aria-labelledby="features-title" className="px-6 py-24 md:py-32">
+            <div className="mx-auto max-w-6xl text-center">
                 <p className="text-xs uppercase tracking-[0.2em] text-muted">Features</p>
                 <h2 id="features-title" className="mt-5 font-display text-4xl font-semibold">Everything your order desk needs.</h2>
                 <p className="mt-4 text-lg text-muted">Nothing it doesn't.</p>

@@ -2,14 +2,15 @@ import { AIMessage, BaseMessage, HumanMessage } from "@langchain/core/messages";
 import { graph } from "../agent/agent.js";
 import type { ResumeDecision } from "../validation/order.schema.js";
 import { Command } from "@langchain/langgraph";
-
+import {eq} from "drizzle-orm";
+import {db} from "../db/client.js";
+import { agentThreads } from "../db/schema.js";
 
 async function buildResult(result:{messages:BaseMessage[]}, id:string){
   const snapShot = await graph.getState({ configurable:{thread_id:id}});
   const pending = snapShot.tasks.flatMap((task)=> task.interrupts);
 
   if(pending.length > 0){
-    const value = pending[0]!.value as {draft:unknown}
     return{
       status:"needs_approval" as const,
       approval:pending[0]!.value,
@@ -33,16 +34,30 @@ const start = result.messages.findLastIndex((m)=> HumanMessage.isInstance(m));
 }
 
 
-export async function askAgent(message: string, threadId?:string) {
-  const id = threadId ?? crypto.randomUUID()
-  const result = await graph.invoke({ messages: [new HumanMessage(message)] },{configurable:{thread_id:id}});
+export async function askAgent(userId:string,message: string, threadId?:string) {
+  let id:string;
+
+  if(threadId){
+    if(!(await ownsThread(userId, threadId))){
+      return {status:"thread_not_found" as const , threadId}
+    }
+    id = threadId;
+  } else {
+    id = crypto.randomUUID();
+    await db.insert(agentThreads).values({threadId:id, userId})
+  }
+  
+  const result = await graph.invoke({ messages: [new HumanMessage(message)] },{configurable:{thread_id:id,userId}});
 
   return buildResult(result,id)
 
 }
 
-export async function resumeAgent(threadId: string, decision:ResumeDecision){
-  const config = { configurable:{ thread_id: threadId}};
+export async function resumeAgent(userId:string,threadId: string, decision:ResumeDecision){
+  if(!(await ownsThread(userId, threadId))){
+    return { status:"thread_not_found" as const, threadId }
+  }
+  const config = { configurable:{ thread_id: threadId,userId}};
 
   const snapshot = await graph.getState(config);
   const pending = snapshot.tasks.flatMap((task)=>task.interrupts);
@@ -56,4 +71,13 @@ export async function resumeAgent(threadId: string, decision:ResumeDecision){
   return buildResult(result, threadId);
 }
 
+async function ownsThread(userId:string, threadId:string):Promise<boolean>{
+  const [thread] = await db
+    .select()
+    .from(agentThreads)
+    .where(eq(agentThreads.threadId, threadId))
+    .limit(1)
+
+    return thread?.userId === userId;
+}
 

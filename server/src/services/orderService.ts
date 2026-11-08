@@ -19,18 +19,19 @@ import type {
 import { todayIST } from "../utils/date.js";
 import { computePriority } from "../utils/priority.js";
 
-export async function createOrder(input: CreateOrderInput) {
+export async function createOrder(userId:string,input: CreateOrderInput) {
   return db.transaction(async (tx) => {
     let [customer] = await tx
       .select()
       .from(customers)
-      .where(ilike(customers.name, input.customerName))
+      .where(and(eq(customers.userId,userId),ilike(customers.name, input.customerName)))
       .limit(1);
 
     if (!customer) {
       [customer] = await tx
         .insert(customers)
         .values({
+          userId,
           name: input.customerName,
           phone: input.customerPhone ?? null,
         })
@@ -41,6 +42,7 @@ export async function createOrder(input: CreateOrderInput) {
     const [order] = await tx
       .insert(orders)
       .values({
+        userId,
         customerId: customer.id,
         dueDate: input.dueDate ?? null,
         amount: input.amount ?? null,
@@ -68,9 +70,9 @@ export async function createOrder(input: CreateOrderInput) {
   });
 }
 
-export async function listOrders(filters: ListOrdersQuery) {
+export async function listOrders(userId:string,filters: ListOrdersQuery) {
   const today = todayIST();
-  const conditions: SQL[] = [];
+  const conditions: SQL[] = [eq(orders.userId,userId)];
 
   if (filters.status) {
     conditions.push(eq(orders.status, filters.status));
@@ -131,13 +133,14 @@ export const ALLOWED_TRANSITIONS: Record<OrderStatusValue, OrderStatusValue[]> =
 };
 
 export async function updateOrderStatus(
+  userId:string,
   id: number,
   newStatus: OrderStatusValue,
 ) {
   const [existing] = await db
     .select()
     .from(orders)
-    .where(eq(orders.id, id))
+    .where(and(eq(orders.id, id), eq(orders.userId,userId)))
     .limit(1);
 
   if (!existing) {
@@ -156,20 +159,20 @@ export async function updateOrderStatus(
   const [updated] = await db
     .update(orders)
     .set({ status: newStatus })
-    .where(eq(orders.id, id))
+    .where(and(eq(orders.id, id),eq(orders.userId, userId)))
     .returning();
 
   return { ok: true as const, order: updated };
 }
 
-export async function getOrder(id:number){
+export async function getOrder(userId:string,id:number){
     const today = todayIST();
 
   const [row] = await db
     .select({order:orders, customer:customers})
     .from(orders)
     .innerJoin(customers,eq(orders.customerId,customers.id))
-    .where(eq(orders.id, id))
+    .where(and(eq(orders.id, id), eq(orders.userId, userId)))
     .limit(1)
 
     if (!row) {

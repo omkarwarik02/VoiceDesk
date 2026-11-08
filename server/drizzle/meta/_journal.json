@@ -8,6 +8,13 @@
       "when": 1793208705614,
       "tag": "0000_overconfident_iron_fist",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794031389679,
+      "tag": "0001_third_the_stranger",
+      "breakpoints": true
     }
   ]
 }

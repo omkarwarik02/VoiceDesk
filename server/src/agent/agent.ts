@@ -86,7 +86,7 @@ const agentNode: GraphNode<typeof AgentState> = async (state) => {
   return { messages: [response] };
 };
 
-const toolsNode: GraphNode<typeof AgentState> = async (state) => {
+const toolsNode: GraphNode<typeof AgentState> = async (state,config) => {
   const last = state.messages.at(-1);
   if (!last || !AIMessage.isInstance(last) || !last.tool_calls?.length) {
     return {};
@@ -115,7 +115,7 @@ const toolsNode: GraphNode<typeof AgentState> = async (state) => {
         content = `Error: unknown tool "${call.name}". Available tools: ${Object.keys(toolsByName).join(", ")}.`;
       } else {
         try {
-          content = String(await tool.invoke(call.args));
+          content = String(await tool.invoke(call.args,config));
         } catch (err) {
           if(isGraphInterrupt(err)) throw err;
           content = `Error: ${call.name} failed: ${err instanceof Error ? err.message : String(err)}`;

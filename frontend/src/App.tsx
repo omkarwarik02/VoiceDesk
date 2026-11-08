@@ -13,7 +13,7 @@ export default function App() {
 
       <Show when="signed-in">
         <UserButton />
-        {/* ChatPage goes here next */}
+      
       </Show>
     </div>
     </ReactLenis>

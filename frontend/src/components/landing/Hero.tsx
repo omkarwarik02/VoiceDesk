@@ -33,7 +33,7 @@ export default function Hero(){
             See how it works
           </a>
         </div>
-        <div className="rounded-full border border-line px-7 py-2 bg-surface flex flex-row items-center justify-center gap-2 mt-10">
+        <div className="rounded-full border border-line px-7 py-2 bg-surface flex flex-row items-center justify-center gap-2 mt-5">
           <Mic className=" w-4 text-red-500" aria-hidden="true"size={20} />
           <small>
             Try: <span>"50 banners for omkar by tomorrow"</span>

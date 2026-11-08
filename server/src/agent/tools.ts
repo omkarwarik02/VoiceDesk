@@ -4,18 +4,26 @@ import { listOrders, getOrder, createOrder, updateOrderStatus } from "../service
 import { z } from "zod";
 import { interrupt, isGraphInterrupt } from "@langchain/langgraph";
 import { ALLOWED_TRANSITIONS } from "../services/orderService.js";
+import type { RunnableConfig } from "@langchain/core/runnables";
+
+function getToolUserId(config:RunnableConfig): string | null{
+  const userId = config?.configurable?.userId;
+  return typeof userId === "string" ? userId : null;
+}
 
 
 export const  listOrdersTool = tool(
-    async (input) => {
+    async (input,config) => {
         try{
+          const userId =getToolUserId(config);
+          if(!userId) return "Error: no signed-in user for this request.";
             const filters ={
                 status:input.status ?? undefined,
                 due:input.due ?? undefined,
                 customer:input.customer?.trim() || undefined,
             }
 
-            const orders = await listOrders(filters);
+            const orders = await listOrders(userId,filters);
             if(orders.length === 0){
                 return "No orders match these filters."
             }
@@ -49,9 +57,11 @@ export const  listOrdersTool = tool(
 )
 
 export const  getOrderTool = tool(
-    async({id}) =>{
+    async({id},config) =>{
         try{
-        const result = await getOrder(id);
+          const userId = getToolUserId(config);
+          if(!userId) return "Error: no signed-in user for this request."
+        const result = await getOrder(userId,id);
         if(!result.ok){
             return `Order ${id} not found`;
         }
@@ -86,8 +96,10 @@ export const  getOrderTool = tool(
 )
 
 export const createOrderTool = tool(
-    async( input) =>{
+    async( input , config) =>{
         try{
+          const userId = getToolUserId(config);
+          if(!userId)  return "Error: no signed-in user for this request.";
 
             const draft = {
                 customerName:input.customerName,
@@ -118,7 +130,7 @@ export const createOrderTool = tool(
             }
             const finalOrder = descision.data.action === "edit" ? descision.data.draft : parsed.data;
 
-            const order = await createOrder(finalOrder);
+            const order = await createOrder(userId,finalOrder);
             return `Order #${order.id} created for ${order.customer.name}`
 
         }catch(err){
@@ -136,9 +148,11 @@ export const createOrderTool = tool(
 )
 
 export const updateStatusTool = tool(                                   // ← renamed
-  async ({ id, status }) => {
-    try {                                                               // ← try starts
-      const result = await getOrder(id);
+  async ({ id, status }, config) => {
+    try {              
+      const userId = getToolUserId(config);
+       if(!userId) return "Error: no signed-in user for this request."                                                 // ← try starts
+      const result = await getOrder(userId,id);
       if (!result.ok) {
         return `Order #${id} not found. Use list_orders to find the correct order.`;
       }
@@ -168,7 +182,7 @@ export const updateStatusTool = tool(                                   // ← r
         return `Editing is not supported for status changes. Nothing changed; order #${id} is still ${current}. Ask the owner which status they want.`;  // ← "status changed" removed
       }
 
-      const updated = await updateOrderStatus(id, status);
+      const updated = await updateOrderStatus(userId,id, status);
       if (!updated.ok) {
         return `Could not update order #${id}: ${updated.code}. Nothing changed.`;
       }

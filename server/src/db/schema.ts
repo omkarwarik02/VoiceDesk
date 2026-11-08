@@ -7,8 +7,10 @@ import {
   boolean,
   date,
   timestamp,
+  uuid
 } from "drizzle-orm/pg-core";
 import { time } from "node:console";
+
 
 export const orderStatus = pgEnum("order_status", [
   "new",
@@ -20,6 +22,7 @@ export const orderStatus = pgEnum("order_status", [
 
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
+  userId:text("user_id").notNull(),
   name: text("name").notNull(),
   phone: text("phone"),
   isVip: boolean("is_vip").notNull().default(false),
@@ -28,6 +31,7 @@ export const customers = pgTable("customers", {
 
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
+  userId:text("user_id").notNull(),
   customerId: integer("customer_id")
     .notNull()
     .references(() => customers.id),
@@ -49,3 +53,9 @@ export const orderItems = pgTable("order_items", {
   quantity: integer("quantity").notNull(),
   unit: text("unit"),
 });
+
+export const agentThreads = pgTable("agent_threads",{
+threadId:uuid("thread_id").primaryKey(),
+userId:text("user_id").notNull(),
+createdAt:timestamp("created_at").defaultNow().notNull(),
+})

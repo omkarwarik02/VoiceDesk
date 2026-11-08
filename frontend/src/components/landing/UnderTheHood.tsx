@@ -40,8 +40,8 @@ const highlighted = ["LangGraph agent", "Your approval"];
 export default function UnderTheHood(){
 
     return(
-        <section id="underthehood" aria-labelledby="underthehood-title" className="px-6 pb-16">
-            <div className="mx-auto max-w-6xl pt-16 text-center">
+        <section id="underthehood" aria-labelledby="underthehood-title" className="px-6 py-24 md:py-32">
+            <div className="mx-auto max-w-6xl text-center">
                 <p className="text-xs uppercase tracking-[0.2em] text-muted">under the hood</p>
                 <h2 id="underthehood-title" className="mt-5 font-display text-4xl font-semibold">A real agent, not just a chatbot.</h2>
                 <div className="mt-16 flex flex-wrap items-center justify-center gap-3">
