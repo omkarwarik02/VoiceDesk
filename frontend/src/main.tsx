@@ -14,7 +14,10 @@ if(!publishableKey){
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ClerkProvider publishableKey={publishableKey}>
+    <ClerkProvider publishableKey={publishableKey}
+      signInForceRedirectUrl="/"
+  signUpForceRedirectUrl="/"
+    >
       <App />
     </ClerkProvider>
     
