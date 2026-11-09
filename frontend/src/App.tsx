@@ -4,6 +4,7 @@ import { ReactLenis } from "lenis/react";
 import "lenis/dist/lenis.css";
 import Dashboard from "./components/landing/Dashboard";
 
+
 export default function App() {
   return (
     
@@ -15,7 +16,8 @@ export default function App() {
       </Show>
 
       <Show when="signed-in">
-        <Dashboard />
+      <Dashboard />
+        
       </Show>
     </div>
     

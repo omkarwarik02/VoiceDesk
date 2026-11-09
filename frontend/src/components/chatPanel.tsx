@@ -1,24 +1,21 @@
-import { useState } from "react"
-import type { ChatMessage } from "../types/agent"
+
 import PromptBar from "../components/PromptBar";
+import { useChat } from "../lib/useChat";
+import ApprovalCard from "./ApprovalCard";
 
 
 
 export default function ChatPanel(){
-const [messages, setMessages] = useState<ChatMessage[]>([])
-function handleSend(text:string){
-    setMessages((prev) => [
-  ...prev,
-  { id: crypto.randomUUID(), role: "user", text },
-  { id: crypto.randomUUID(), role: "assistant", text: "Test reply from the agent" },
-]);
-}
+
+    const { messages, busy, send, decide, pendingApproval} = useChat();
 
     return (
 <>
 <div className="min-h-0 flex-1 overflow-y-auto px-12 py-8">
             <div className="mx-auto max-w-3xl space-y-4">
                 {messages.map((m) =>(
+                    
+
                    <div
                    key={m.id}
                    className={m.role === "user" ? "flex justify-end" : "flex justify-start"}
@@ -29,12 +26,15 @@ function handleSend(text:string){
 
                    </div>
                 ))}
+                {pendingApproval && (
+                    <ApprovalCard approval={pendingApproval} busy={busy} onDecide={decide} />
+                )}
             </div>
         </div>
 
         <div className="flex shrink-0 justify-center px-12 py-5">
                 <div className="w-full max-w-3xl">
-                    <PromptBar width={768} models={[]} efforts={[]} onSend={handleSend} />
+                    <PromptBar width={768} models={[]} efforts={[]} onSend={send} busy={busy} />
                 </div>
         </div>
         </>
