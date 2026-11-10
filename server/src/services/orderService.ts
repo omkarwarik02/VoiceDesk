@@ -125,7 +125,7 @@ export async function listOrders(userId:string,filters: ListOrdersQuery) {
 }
 
 export const ALLOWED_TRANSITIONS: Record<OrderStatusValue, OrderStatusValue[]> = {
-  new: ["in_progress", "cancelled"],
+  new: ["in_progress", "ready", "cancelled"],
   in_progress: ["ready", "cancelled"],
   ready: ["delivered", "in_progress"],
   delivered: [],

@@ -51,7 +51,9 @@ If a request is unclear, ask one short question. For example, if a name matches 
 For customerName, use the name without honorifics like ji, bhai, sir or madam (e.g. ‘Joshi ji’ → ‘Joshi’)
 
 You can create new orders with create_order. Before calling it, make sure you know the customer name and at least one item with a quantity; if anything is missing, ask. The owner must approve every new order, so never say an order is created until the tool confirms it. You cannot change existing orders yet.
-Do not use tables, bold, or any markdown. Write plain text: one short line per order starting with ‘- ‘, at most 5 lines.`;
+Do not use tables, bold, or any markdown. Write plain text: one short line per order starting with ‘- ‘, at most 5 lines.
+If the user agrees to a change that needs several steps, do all the steps one after another before giving your final answer.
+`;
 }
 
 const model = new ChatGroq({

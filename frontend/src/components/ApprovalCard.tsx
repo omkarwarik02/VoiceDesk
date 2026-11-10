@@ -1,4 +1,5 @@
 import type { Approval, ResumeDecision } from "../types/agent";
+import { useState } from "react";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import {
@@ -9,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
+import OrderEditForm from "./OrderEditForm";
 
 
 type Props = {
@@ -25,7 +27,27 @@ function formatDate(date?: string) {
   });
 }
 export default function ApprovalCard({ approval, busy, onDecide }: Props) {
+const [Editing, setEditing] = useState(false);
+
+ if(Editing && approval.type === "order_approval"){
+    return(
+      <Card className="border border-line bg-white/5 ring-0">
+     <CardHeader>
+        <CardDescription>Edit order before approving</CardDescription>
+     </CardHeader>
+     <CardContent>
+      <OrderEditForm
+       initial={approval.draft}
+       busy={busy}
+       onSave={(draft) => onDecide({ action:"edit", draft})}
+       onBack={() => setEditing(false)}
+      />
+     </CardContent>
+      </Card>
+    )
+  }
   return (
+ 
     <Card className="border-line bg-white/5">
       {approval.type === "order_approval" ? (
         <>
@@ -73,6 +95,11 @@ export default function ApprovalCard({ approval, busy, onDecide }: Props) {
         <Button disabled={busy} onClick={() => onDecide({ action: "approve" })}>
           Approve
         </Button>
+        {approval.type === "order_approval" && (
+          <Button variant="outline" disabled={busy} onClick={() =>setEditing(true)}>
+            Edit
+          </Button>
+        )}
         <Button
           variant="ghost"
           disabled={busy}

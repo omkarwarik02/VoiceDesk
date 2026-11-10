@@ -10,7 +10,7 @@ const DECISION_LABELS:Record<ResumeDecision["action"],string> = {
 }
 
 
-export function useChat(){
+export function useChat( onOrdersChanged:()=> void){
     const api = useApi();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [threadId, setThreadId] = useState<string | undefined>();
@@ -43,6 +43,7 @@ export function useChat(){
             });
             addMessage("user", DECISION_LABELS[decision.action]);
             handleResponse(response);
+            if(decision.action !== "cancel") onOrdersChanged();
 
         }catch(err){
            addMessage("assistant", err instanceof Error ? err.message : "Something went wrong.");

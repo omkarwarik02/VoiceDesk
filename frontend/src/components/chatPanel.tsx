@@ -2,12 +2,13 @@
 import PromptBar from "../components/PromptBar";
 import { useChat } from "../lib/useChat";
 import ApprovalCard from "./ApprovalCard";
+import LatticeLoader from "./LatticeLoader";
 
 
 
-export default function ChatPanel(){
+export default function ChatPanel({ onOrdersChanged}:{onOrdersChanged:()=> void}){
 
-    const { messages, busy, send, decide, pendingApproval} = useChat();
+    const { messages, busy, send, decide, pendingApproval} = useChat( onOrdersChanged);
 
     return (
 <>
@@ -31,6 +32,14 @@ export default function ChatPanel(){
                 )}
             </div>
         </div>
+        {busy && (
+            <div className="flex justify-end p-6">
+                <LatticeLoader />
+        </div>
+
+        )}
+        
+         
 
         <div className="flex shrink-0 justify-center px-12 py-5">
                 <div className="w-full max-w-3xl">

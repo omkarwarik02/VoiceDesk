@@ -56,3 +56,31 @@ export type ResumeDecision =
   }
 
   export type Approval = OrderApproval | StatusApproval;
+
+  export type PriorityLevel = "HIGH" | "MEDIUM" | "LOW";
+
+  export type Priority = {
+    level:PriorityLevel;
+    score:number;
+    reasons:string[]
+  }
+
+  export type Order = {
+    id:number;
+    status:OrderStatus;
+    dueDate:string | null;
+    amount: number | null;
+    advancePaid: number;
+    isUrgent: boolean;
+    notes: string | null;
+    createdAt:string;
+    customer:{id:number; name:string, phone:string | null; isVip: boolean};
+    items:{id:number; name:string; quantity:number; unit:string | null}[];
+    priority:Priority | null;
+  }
+
+  export type OrderResponse = {
+    ok:true;
+    count:number;
+    orders:Order[]
+  }
