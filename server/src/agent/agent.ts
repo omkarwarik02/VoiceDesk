@@ -22,6 +22,13 @@ import { VoiceDeskTools } from "./tools.js";
 import { todayLabelIST, upcomingDatesIST } from "../utils/date.js";
 import { PostgresSaver} from "@langchain/langgraph-checkpoint-postgres"
 import { pool } from "../db/client.js";
+import { trimMessages } from "@langchain/core/messages";
+
+
+
+
+
+
 
 
 export const checkpointer = new PostgresSaver(pool)
@@ -81,9 +88,17 @@ const toolsByName: Record<string, StructuredToolInterface> = Object.fromEntries(
 );
 
 const agentNode: GraphNode<typeof AgentState> = async (state) => {
+  const recent = await trimMessages(state.messages,{
+    maxTokens:20,
+    strategy:"last",
+    tokenCounter:(msgs) =>msgs.length,
+    startOn:"human",
+
+  })
+
   const response = await modelWithTools.invoke([
     new SystemMessage(buildSystemPrompt()),
-    ...state.messages,
+    ...recent,
   ]);
   return { messages: [response] };
 };
