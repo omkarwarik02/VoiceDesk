@@ -1,14 +1,39 @@
 
+import { useState } from "react";
 import PromptBar from "../components/PromptBar";
 import { useChat } from "../lib/useChat";
+import { useVoice } from "../lib/useVoice";
 import ApprovalCard from "./ApprovalCard";
 import LatticeLoader from "./LatticeLoader";
+import {Mic, Square} from "lucide-react"
+import type { OrderFilter } from "../types/agent";
+
+type Props = {
+  onOrdersChanged: () => void;
+  onFilterChange: (filter: OrderFilter) => void;
+};
 
 
+export default function ChatPanel({ onOrdersChanged, onFilterChange}:Props){
+    const [micError, setMicError] = useState<string | null>(null)
+    const { messages, busy, send, decide, pendingApproval, sendVoice} = useChat( onOrdersChanged, onFilterChange);
+    const {containerRef, recording , start, stop } = useVoice();
 
-export default function ChatPanel({ onOrdersChanged}:{onOrdersChanged:()=> void}){
+   async function handleMic(){
+    try{
+        if(recording){
+            const audio = await stop();
+            await sendVoice(audio);
 
-    const { messages, busy, send, decide, pendingApproval} = useChat( onOrdersChanged);
+        } else {
+            setMicError(null);
+            await start()
+        }
+
+    } catch{
+        setMicError("Allow microphone access to use voice",);
+    }
+   }
 
     return (
 <>
@@ -42,8 +67,21 @@ export default function ChatPanel({ onOrdersChanged}:{onOrdersChanged:()=> void}
          
 
         <div className="flex shrink-0 justify-center px-12 py-5">
-                <div className="w-full max-w-3xl">
-                    <PromptBar width={768} models={[]} efforts={[]} onSend={send} busy={busy} />
+                <div className="w-full max-w-3xl flex flex-row items-center gap-x-3">
+                   <button onClick={handleMic} disabled={!recording && (busy || !!pendingApproval)} className="cursor-pointer">
+                    {recording ? <Square className="size-4 fill-red-500 text-red-500" />:<Mic />}
+                    </button> 
+                   <div className="relative flex-1 min-w-0">
+                     <PromptBar width={768} models={[]} efforts={[]} onSend={send} busy={busy} />
+                     <div className={`absolute inset-0 flex items-center gap-3 rounded-2xl bg-[#27272a] px-4 ${recording ? "opacity-100" : "opacity-0 pointer-events-none"}`} >
+                        < span className="size-2 shrink-0 animate-pulse rounded-full bg-red-500"/>
+                        <span className="text-sm text-muted">Recording</span>
+                          <div ref={containerRef} className="flex-1"/>
+                     </div>
+                   
+
+                   </div>
+                    
                 </div>
         </div>
         </>

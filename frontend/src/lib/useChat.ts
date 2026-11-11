@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useApi } from "./useApi";
-import type { AgentResponse, ChatMessage, Approval, ResumeDecision } from "../types/agent";
+import type { AgentResponse, ChatMessage, Approval, ResumeDecision, VoiceResponse, OrderFilter } from "../types/agent";
 
 
 const DECISION_LABELS:Record<ResumeDecision["action"],string> = {
@@ -10,7 +10,7 @@ const DECISION_LABELS:Record<ResumeDecision["action"],string> = {
 }
 
 
-export function useChat( onOrdersChanged:()=> void){
+export function useChat( onOrdersChanged:()=> void, onFilterChange:(filter:OrderFilter)=> void){
     const api = useApi();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [threadId, setThreadId] = useState<string | undefined>();
@@ -27,6 +27,7 @@ export function useChat( onOrdersChanged:()=> void){
         if(data.status ==="answered"){
             setPendingApproval(null);
             addMessage("assistant", data.answer)
+            if(data.filter) onFilterChange(data.filter);
         } else {
             setPendingApproval(data.approval);
         }
@@ -77,6 +78,40 @@ export function useChat( onOrdersChanged:()=> void){
         }
 
     }
-    return {messages, busy, send, pendingApproval, decide}
+
+    async function sendVoice(audio:Blob){
+        if(pendingApproval ||  busy) return;
+
+        const form = new  FormData();
+        form.append("audio",audio, "voice.webm");
+        if(threadId) form.append("threadId", threadId);
+
+       
+
+        setBusy(true);
+
+        try{
+            const response = await api<VoiceResponse>("/api/agent/voice",{
+                method:"POST",
+                body:form
+            })
+            addMessage("user", response.transcript)
+            handleResponse(response)
+        } catch(err){
+            addMessage("assistant", err instanceof Error ? err.message : "Something went wrong")
+        } finally{
+            setBusy(false);
+        }
+
+
+    }
+
+
+
+
+
+
+
+    return {messages, busy, send, pendingApproval, decide, sendVoice}
 
 }

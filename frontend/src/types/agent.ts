@@ -10,6 +10,7 @@ export type AgentResponse =
       answer: string;
       toolsUsed: string[];
       threadId: string;
+      filter?: OrderFilter | null;
     }
   | {
       status: "needs_approval";
@@ -84,3 +85,11 @@ export type ResumeDecision =
     count:number;
     orders:Order[]
   }
+
+ export type VoiceResponse = AgentResponse & {transcript: string};
+ 
+ export type OrderFilter ={
+  status?:OrderStatus;
+  due?: "today" | "overdue" | "upcoming";
+  customer?:string;
+ }

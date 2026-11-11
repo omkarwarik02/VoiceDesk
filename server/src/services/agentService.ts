@@ -1,6 +1,6 @@
 import { AIMessage, BaseMessage, HumanMessage } from "@langchain/core/messages";
 import { graph } from "../agent/agent.js";
-import type { ResumeDecision } from "../validation/order.schema.js";
+import { ListOrdersQuery, ListOrdersToolInput, type ResumeDecision } from "../validation/order.schema.js";
 import { Command } from "@langchain/langgraph";
 import {eq} from "drizzle-orm";
 import {db} from "../db/client.js";
@@ -20,16 +20,24 @@ async function buildResult(result:{messages:BaseMessage[]}, id:string){
 
 const start = result.messages.findLastIndex((m)=> HumanMessage.isInstance(m));
   const toolsUsed: string[] = [] ;
+  let filter: ListOrdersQuery | null = null ;
+  
   for (const msg of result.messages.slice(start + 1)) {
     if (AIMessage.isInstance(msg) && msg.tool_calls?.length) {
       for (const call of msg.tool_calls) {
 
          toolsUsed.push(call.name);
+        if(call.name === "list_orders"){
+          const parsed = ListOrdersToolInput.safeParse(call.args);
+          if(parsed.success){
+            filter = { status: parsed.data.status   ?? undefined, due:parsed.data.due ?? undefined,  customer: parsed.data.customer ?? undefined,}
+          }
+        }
       }
     }
   }
   const answer = String(result.messages.at(-1)?.content ?? "")
-  return { status:"answered" as const ,answer, toolsUsed, threadId:id };
+  return { status:"answered" as const ,answer, toolsUsed, threadId:id ,filter };
 
 }
 
