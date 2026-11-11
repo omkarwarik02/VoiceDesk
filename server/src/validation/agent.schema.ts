@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ResumeDecision } from "./order.schema.js";
 
+
 export const AgentMessageInput = z.object({
     message: z.string().trim().min(1,"message").max(500,"message.."),
     threadId:z.uuid().optional()
@@ -8,6 +9,9 @@ export const AgentMessageInput = z.object({
 export const ResumeAgentInput = z.object({
     threadId:z.uuid(),
     decision:ResumeDecision,
+})
+export const ThreadIdParams = z.object({
+    threadId:z.uuid()
 })
 
 export type AgentMessageInput = z.infer<typeof AgentMessageInput>;

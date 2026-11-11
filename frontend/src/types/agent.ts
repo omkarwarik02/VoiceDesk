@@ -93,3 +93,7 @@ export type ResumeDecision =
   due?: "today" | "overdue" | "upcoming";
   customer?:string;
  }
+ export type PendingResponse = {
+  ok: true;
+  approval: Approval | null;
+};

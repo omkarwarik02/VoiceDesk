@@ -61,7 +61,7 @@ export function computePriority(
     reasons.push("large order");
   }
   const level: PriorityLevel =
-    score >= 60 ? "HIGH" : score >= 40 ? "MEDIUM" : "LOW";
+    score >= 50 ? "HIGH" : score >= 30 ? "MEDIUM" : "LOW";
 
   return { level, score, reasons };
 }

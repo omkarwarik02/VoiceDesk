@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
-import { askAgent, resumeAgent } from "../services/agentService.js";
-import { AgentMessageInput, ResumeAgentInput } from "../validation/agent.schema.js";
+import { askAgent, getPendingApproval, resumeAgent } from "../services/agentService.js";
+import { AgentMessageInput, ResumeAgentInput, ThreadIdParams } from "../validation/agent.schema.js";
 import getUserId from "../utils/auth.js";
 
 export async function askAgentHandler(req:Request, res:Response){
@@ -31,4 +31,17 @@ export async function resumeAgentHandler(req:Request, res:Response){
         return res.status(409).json({ok:false, error:"Nothing is waiting for approval in this conversation"})
     }
     res.status(200).json({ok:true,...result })
+}
+
+export async function getPendingHandler(req:Request, res:Response){
+const userId = getUserId(req);
+const parsed = ThreadIdParams.safeParse(req.params);
+  if(!parsed.success){
+        return res.status(400).json({ ok:false, error:z.prettifyError(parsed.error)});
+    }
+    const result = await getPendingApproval(userId,parsed.data.threadId);
+  if(result.status === "thread_not_found" ){
+        return res.status(404).json({ok:false, error:"Conversation not found"})
+    }
+    res.json({ ok: true, approval: result.approval });
 }

@@ -89,3 +89,13 @@ async function ownsThread(userId:string, threadId:string):Promise<boolean>{
     return thread?.userId === userId;
 }
 
+export async function getPendingApproval(userId:string, threadId:string){
+  if(!(await ownsThread(userId,threadId))){
+    return { status:"thread_not_found" as const, threadId }
+  }
+  const config = {configurable:{ thread_id:threadId, userId}};
+  const snapshot = await graph.getState(config);
+  const pending = snapshot.tasks.flatMap((task) => task.interrupts);
+
+  return { status:"ok" as const, approval:pending[0]?.value ?? null };
+}
