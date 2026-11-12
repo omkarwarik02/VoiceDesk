@@ -1,4 +1,5 @@
 {
+  "include": ["src"],
   "compilerOptions": {
     "module": "nodenext",
     "moduleResolution": "nodenext",
@@ -10,7 +11,8 @@
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "skipLibCheck": true,
+    "rootDir": "src",
     "outDir": "dist"
   },
-  "include": ["src", "drizzle.config.ts"]
+
 }
