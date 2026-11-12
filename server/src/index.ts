@@ -12,8 +12,10 @@ import express, {
 import { HttpError } from "./utils/httpError.js";
 import { clerkMiddleware } from "@clerk/express";
 import { requireAuth } from "./middlewares/requireAuth.js";
+import { agentlimiter } from "./middlewares/rateLimit.js";
 
 const app = express();
+app.set("trust proxy", 1);
 
 app.use(cors({
   origin: env.FRONTEND_URL.split(",").map((url) => url.trim()),
@@ -26,7 +28,7 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "voicedesk-server" });
 });
 app.use("/api/orders", requireAuth, orderRouter);
-app.use("/api/agent", requireAuth, agentRouter);
+app.use("/api/agent", requireAuth, agentlimiter ,agentRouter);
 
 
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
