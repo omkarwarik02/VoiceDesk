@@ -1,4 +1,4 @@
-import { Show, UserButton } from "@clerk/react";
+import { Show} from "@clerk/react";
 import LandingPage from "./components/landing/LandingPage";
 import { ReactLenis } from "lenis/react";
 import "lenis/dist/lenis.css";

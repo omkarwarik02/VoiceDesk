@@ -81,6 +81,7 @@ export default function ChatPanel({ onOrdersChanged, onFilterChange}:Props){
                    
 
                    </div>
+                   {micError && <p className="mt-2 text-sm text-red-300">{micError}</p>}
                     
                 </div>
         </div>
