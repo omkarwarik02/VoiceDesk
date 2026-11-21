@@ -9,7 +9,7 @@ import {
   timestamp,
   uuid
 } from "drizzle-orm/pg-core";
-import { time } from "node:console";
+
 
 
 export const orderStatus = pgEnum("order_status", [
@@ -55,7 +55,9 @@ export const orderItems = pgTable("order_items", {
 });
 
 export const agentThreads = pgTable("agent_threads",{
+title:text("title"),
 threadId:uuid("thread_id").primaryKey(),
 userId:text("user_id").notNull(),
 createdAt:timestamp("created_at").defaultNow().notNull(),
+updatedAt:timestamp("updated_at").defaultNow().notNull()
 })

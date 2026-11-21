@@ -15,6 +15,13 @@
       "when": 1794031389679,
       "tag": "0001_third_the_stranger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795241893856,
+      "tag": "0002_aberrant_luckman",
+      "breakpoints": true
     }
   ]
 }

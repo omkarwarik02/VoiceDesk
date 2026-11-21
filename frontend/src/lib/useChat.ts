@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "@clerk/react";
 import { useApi } from "./useApi";
 import type {
   AgentResponse,
@@ -8,6 +7,7 @@ import type {
   OrderFilter,
   PendingResponse,
   ResumeDecision,
+  ThreadMessagesResponse,
   VoiceResponse,
 } from "../types/agent";
 
@@ -17,75 +17,46 @@ const DECISION_LABELS: Record<ResumeDecision["action"], string> = {
   edit: "Approved with changes",
 };
 
-const keyFor = (userId: string) => `voicedesk:thread:${userId}`;
 
-export function saveThread(userId: string, threadId: string) {
-  try {
-    localStorage.setItem(keyFor(userId), threadId);
-  } catch {
-    // localStorage unavailable (private mode or blocked): skip saving, the app still works without restore
-  }
-}
 
-export function loadThread(userId: string): string | null {
-  try {
-    return localStorage.getItem(keyFor(userId));
-  } catch {
-    return null;
-  }
-}
-
-export function clearThread(userId: string) {
-  try {
-    localStorage.removeItem(keyFor(userId));
-  } catch {
-    // localStorage unavailable: nothing to remove, safe to ignore
-  }
-}
 
 export function useChat(
   onOrdersChanged: () => void,
   onFilterChange: (filter: OrderFilter) => void,
+  initialThreadId: string | null,
+  onThreadChange:(threadId:string) => void,
 ) {
   const api = useApi();
-  const { userId } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [threadId, setThreadId] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [pendingApproval, setPendingApproval] = useState<Approval | null>(null);
 
   useEffect(() => {
-    if (!userId) return;
-    const savedId = loadThread(userId);
-    if (!savedId) return;
+    if(!initialThreadId) return;
 
     let ignore = false;
+    async function load(){
+      try{
+        const [chat, pending] = await Promise.all([
+           api<ThreadMessagesResponse>(`/api/agent/threads/${initialThreadId}`),
+        api<PendingResponse>(`/api/agent/pending/${initialThreadId}`),
+        ]);
+        if(ignore) return;
 
-    const restore = async () => {
-      try {
-        const data = await api<PendingResponse>(`/api/agent/pending/${savedId}`);
-        if (ignore) return;
+        setThreadId(chat.threadId);
+        setMessages(chat.messages.map((m => ({id:crypto.randomUUID(),role:m.role, text:m.content}))));
 
-        if (data.approval) {
-          setThreadId(savedId);
-          setPendingApproval(data.approval);
-          setMessages([
-            { id: crypto.randomUUID(), role: "assistant", text: "You have an unfinished approval from earlier." },
-          ]);
-        } else {
-          clearThread(userId);
-        }
-      } catch {
-        if (!ignore) clearThread(userId);
+        setPendingApproval(pending.approval)
+      } catch{
+        if(!ignore) addMessage("assistant", "Could not load this conversation")
       }
-    };
-
-    restore();
-
+    }
+    load()
     return () => {
       ignore = true;
     };
-  }, [api, userId]);
+  }, [api, initialThreadId]);
 
 
 
@@ -100,7 +71,7 @@ export function useChat(
 
   function handleResponse(data: AgentResponse) {
     setThreadId(data.threadId);
-    if (userId) saveThread(userId, data.threadId);
+    onThreadChange(data.threadId)
 
     if (data.status === "answered") {
       setPendingApproval(null);

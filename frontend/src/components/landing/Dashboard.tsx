@@ -1,4 +1,4 @@
-import { useAuth, UserButton } from "@clerk/react";
+import { UserButton } from "@clerk/react";
 import logo  from "../../assets/voicedesk.png"
 import ChatPanel from "../chatPanel";
 import { SquarePen } from "lucide-react";
@@ -6,19 +6,30 @@ import { useOrders } from "../../lib/useOrders";
 import OrdersPanel from "../ordersPanel";
 import { useState } from "react";
 import type { OrderFilter } from "../../types/agent";
-import { clearThread } from "../../lib/useChat";
+import { useThreads } from "../../lib/useThreads";
 
 
 export default function Dashboard() {
-    const { userId } = useAuth();
+    
      const [chatKey, setChatKey] = useState(0);
   const[filter, setFilter] = useState<OrderFilter | null>(null);
   const {orders, loading, error, refresh} = useOrders(filter);
+  const { threads, refresh: refreshThreads} = useThreads();
+  const [selected, setSelected] = useState<string | null | undefined>(undefined)
+
+
+  const activeThreadId = selected === undefined ? (threads[0]?.threadId ?? null) : selected
+
 
 
 function newConversation(){
-  if(userId) clearThread(userId);
-  setChatKey((k) => k + 1)
+  setSelected(null);
+  setChatKey((k) => k + 1);
+}
+
+function handleThreadChange(id:string){
+  setSelected(id);
+  refreshThreads();
 }
 
 
@@ -44,7 +55,7 @@ function newConversation(){
           
         </aside>
         <main className="flex min-w-0 min-h-0 flex-1 flex-col">
-         <ChatPanel key={chatKey} onOrdersChanged={refresh}   onFilterChange={setFilter}/>
+         <ChatPanel key={chatKey} onOrdersChanged={refresh} initialThreadId={activeThreadId}  onThreadChange={handleThreadChange} onFilterChange={setFilter}/>
          
          
         </main>

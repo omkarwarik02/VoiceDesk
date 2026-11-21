@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
-import { askAgent, getPendingApproval, resumeAgent } from "../services/agentService.js";
+import { askAgent, getPendingApproval, getThreadMessages, listThreads, resumeAgent } from "../services/agentService.js";
 import { AgentMessageInput, ResumeAgentInput, ThreadIdParams } from "../validation/agent.schema.js";
 import getUserId from "../utils/auth.js";
 
@@ -44,4 +44,25 @@ const parsed = ThreadIdParams.safeParse(req.params);
         return res.status(404).json({ok:false, error:"Conversation not found"})
     }
     res.json({ ok: true, approval: result.approval });
+}
+
+export async function listThreadsHandler(req:Request, res:Response){
+    const userId = getUserId(req);
+    const threads = await listThreads(userId);
+    
+    res.json({ok:true, threads})
+
+}
+
+export async function getThreadHandler(req:Request, res:Response){
+    const userId = getUserId(req);
+    const parsed = ThreadIdParams.safeParse(req.params);
+    if (!parsed.success) { return res.status(400).json({ ok: false, error: "Invalid conversation id" })};
+
+    const result = await getThreadMessages(userId, parsed.data.threadId);
+    if(result.status === "thread_not_found"){
+        return res.status(404).json({ok:false, error:"Conversation not found"})
+    }
+    res.json({ok:true, threadId:result.threadId, messages:result.messages})
+
 }

@@ -97,3 +97,20 @@ export type ResumeDecision =
   ok: true;
   approval: Approval | null;
 };
+
+export type ThreadSummary = {
+  threadId:string;
+  title: string | null;
+  updatedAt:string;
+}
+
+export type ThreadsResponse = {
+  ok:true;
+  threads:ThreadSummary[];
+}
+
+export type ThreadMessagesResponse = {
+  ok:true;
+  threadId:string;
+    messages: { role: "user" | "assistant"; content: string }[];
+}

@@ -11,12 +11,14 @@ import type { OrderFilter } from "../types/agent";
 type Props = {
   onOrdersChanged: () => void;
   onFilterChange: (filter: OrderFilter) => void;
+  initialThreadId:string | null;
+  onThreadChange:(threadId:string) => void;
 };
 
 
-export default function ChatPanel({ onOrdersChanged, onFilterChange}:Props){
+export default function ChatPanel({ onOrdersChanged, onFilterChange,initialThreadId, onThreadChange }:Props){
     const [micError, setMicError] = useState<string | null>(null)
-    const { messages, busy, send, decide, pendingApproval, sendVoice} = useChat( onOrdersChanged, onFilterChange);
+    const { messages, busy, send, decide, pendingApproval, sendVoice} = useChat( onOrdersChanged, onFilterChange, initialThreadId, onThreadChange);
     const {containerRef, recording , start, stop } = useVoice();
 
    async function handleMic(){

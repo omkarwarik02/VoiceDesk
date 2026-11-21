@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { askAgentHandler, getPendingHandler, resumeAgentHandler } from "../controllers/agentController.js";
+import { askAgentHandler, getPendingHandler, getThreadHandler, listThreadsHandler, resumeAgentHandler } from "../controllers/agentController.js";
 import { resumeAgent } from "../services/agentService.js";
 import {  uploadAudio } from "../middlewares/upload.js";
 import { voiceHandler } from "../controllers/voiceController.js";
@@ -10,3 +10,5 @@ agentRouter.post("/", askAgentHandler);
 agentRouter.post("/resume",resumeAgentHandler );
 agentRouter.post("/voice", uploadAudio, voiceHandler);
 agentRouter.get("/pending/:threadId", getPendingHandler);
+agentRouter.get("/threads", listThreadsHandler);
+agentRouter.get("/threads/:threadId", getThreadHandler)
