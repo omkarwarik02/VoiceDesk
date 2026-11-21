@@ -40,6 +40,12 @@ export default function Footer(){
           >
         Portfolio
           </a>
+           <a
+            href="/privacy.html"
+            className="inline-flex items-center hover:bg-white/5"
+          >
+        Privacy
+          </a>
             </div>
              
           <p>React . Express . LangGraph . Postgres . Groq</p>
