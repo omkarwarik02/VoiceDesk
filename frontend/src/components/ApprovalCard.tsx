@@ -12,7 +12,6 @@ import {
 } from "../components/ui/card";
 import OrderEditForm from "./OrderEditForm";
 
-
 type Props = {
   approval: Approval;
   busy: boolean;
@@ -26,28 +25,29 @@ function formatDate(date?: string) {
     month: "short",
   });
 }
-export default function ApprovalCard({ approval, busy, onDecide }: Props) {
-const [Editing, setEditing] = useState(false);
 
- if(Editing && approval.type === "order_approval"){
-    return(
+export default function ApprovalCard({ approval, busy, onDecide }: Props) {
+  const [Editing, setEditing] = useState(false);
+
+  if (Editing && approval.type === "order_approval") {
+    return (
       <Card className="border border-line bg-white/5 ring-0">
-     <CardHeader>
-        <CardDescription>Edit order before approving</CardDescription>
-     </CardHeader>
-     <CardContent>
-      <OrderEditForm
-       initial={approval.draft}
-       busy={busy}
-       onSave={(draft) => onDecide({ action:"edit", draft})}
-       onBack={() => setEditing(false)}
-      />
-     </CardContent>
+        <CardHeader>
+          <CardDescription>Edit order before approving</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <OrderEditForm
+            initial={approval.draft}
+            busy={busy}
+            onSave={(draft) => onDecide({ action: "edit", draft })}
+            onBack={() => setEditing(false)}
+          />
+        </CardContent>
       </Card>
-    )
+    );
   }
+
   return (
- 
     <Card className="border-line bg-white/5">
       {approval.type === "order_approval" ? (
         <>
@@ -65,11 +65,8 @@ const [Editing, setEditing] = useState(false);
             </ul>
             <p className="text-sm text-muted">
               Due:{formatDate(approval.draft.dueDate)}
-              {approval.draft.amount !== undefined &&
-                `. ₹${approval.draft.amount}`}
-              {approval.draft.advancePaid
-                ? `.Advance ₹${approval.draft.advancePaid}`
-                : ""}
+              {approval.draft.amount !== undefined && `. ₹${approval.draft.amount}`}
+              {approval.draft.advancePaid ? `.Advance ₹${approval.draft.advancePaid}` : ""}
             </p>
             {approval.draft.notes && (
               <p className="text-sm text-muted">{approval.draft.notes}</p>
@@ -98,10 +95,32 @@ const [Editing, setEditing] = useState(false);
             <p className="text-sm text-red-400">This permanently deletes the order.</p>
           </CardContent>
         </>
+      ) : approval.type === "update_approval" ? (
+        
+        <>
+          <CardHeader>
+            <CardDescription>Update order: needs approval</CardDescription>
+            <CardTitle>
+              Order #{approval.orderId} · {approval.customerName}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {approval.changes.map((change) => (
+                <li key={change.field} className="flex flex-wrap items-center gap-2 text-sm">
+                  <span className="w-28 shrink-0 text-muted">{change.field}</span>
+                  <span className="text-muted line-through">{change.from}</span>
+                  <span className="text-muted">→</span>
+                  <span className="font-medium">{change.to}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </>
       ) : (
         <>
           <CardHeader>
-            <CardDescription>Status change: need approval</CardDescription>
+            <CardDescription>Status change: needs approval</CardDescription>
             <CardTitle>
               Order #{approval.orderId} · {approval.customerName}
             </CardTitle>
@@ -122,15 +141,11 @@ const [Editing, setEditing] = useState(false);
           {approval.type === "delete_approval" ? "Delete" : "Approve"}
         </Button>
         {approval.type === "order_approval" && (
-          <Button variant="outline" disabled={busy} onClick={() =>setEditing(true)}>
+          <Button variant="outline" disabled={busy} onClick={() => setEditing(true)}>
             Edit
           </Button>
         )}
-        <Button
-          variant="ghost"
-          disabled={busy}
-          onClick={() => onDecide({ action: "cancel" })}
-        >
+        <Button variant="ghost" disabled={busy} onClick={() => onDecide({ action: "cancel" })}>
           Cancel
         </Button>
       </CardFooter>

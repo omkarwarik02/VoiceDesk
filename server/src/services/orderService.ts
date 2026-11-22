@@ -18,6 +18,7 @@ import type {
 } from "../validation/order.schema.js";
 import { todayIST } from "../utils/date.js";
 import { computePriority } from "../utils/priority.js";
+import type { OrderChanges } from "../types/order.js";
 
 export async function createOrder(userId:string,input: CreateOrderInput) {
   return db.transaction(async (tx) => {
@@ -208,3 +209,51 @@ export async function deleteOrder(userId: string, id: number) {
   }
   return { ok: true as const, order: deleted };
 }
+
+export async function updateOrder(userId:string, orderId:number, changes:OrderChanges){
+  return db.transaction(async(tx) => {
+    const [order] = await tx
+    .select()
+    .from(orders)
+    .where(and(eq(orders.id, orderId), eq(orders.userId, userId)))
+  
+  if(!order){
+    return {status:"not_found" as const};
+  }
+
+
+  const { dueDate, amount, advancePaid, isUrgent, notes} = changes;
+  const hasOrderChanges = [dueDate, amount, advancePaid, isUrgent, notes]
+    .some((value) => value !== undefined);
+
+    if(hasOrderChanges){
+      await tx.update(orders)
+      .set({ dueDate, amount,advancePaid,isUrgent,notes})
+      .where(and(eq(orders.id, orderId), eq(orders.userId,userId)))
+    }
+    if(changes.customerPhone !== undefined){
+      await tx 
+      .update(customers)
+      .set({phone:changes.customerPhone})
+      .where(and(eq(customers.id, order.customerId), eq(customers.userId, userId)));
+    }
+
+if(changes.items !== undefined){
+  await tx.delete(orderItems).where(eq(orderItems.orderId, orderId));
+
+  if(changes.items.length > 0){
+    await tx.insert(orderItems).values(changes.items.map((item) =>({
+        orderId,
+            name: item.name,
+            quantity: item.quantity,
+            unit: item.unit,
+    })))
+  }
+}
+
+  return {status:"ok" as const , orderId};
+});
+
+}
+
+

@@ -61,7 +61,11 @@ You can create new orders with create_order. Before calling it, make sure you kn
 Use update_status to change an order's status. Use delete_order only when the owner asks to delete or remove an order; if they say cancel, use update_status with cancelled instead. Never say an order is deleted or changed until the tool confirms it.
 Do not use tables, bold, or any markdown. Write plain text: one short line per order starting with ‘- ‘, at most 5 lines.
 If the user agrees to a change that needs several steps, do all the steps one after another before giving your final answer.
+Use update_order when the owner changes details of an existing order, for example "parso tak kar do", "advance 500 diya", "urgent kar do", "50 nahi 80 chahiye". First find the order id with list_orders; if several orders match, ask which one. Send only the fields that change. When changing items, send the full updated items list, including items that stay the same. Convert dates the same way as for new orders. Status changes always go to update_status, not update_order.
+
 `;
+
+
 }
 
 const model = new ChatGroq({

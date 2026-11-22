@@ -63,6 +63,22 @@ export const UpdateStatusToolInput = z.object({
     status:OrderStatus
 })
 
+export const UpdateOrderToolInput = z.object({
+    orderId:z.coerce.number(),
+    customerPhone:z.string().trim().nullish(),
+    dueDate:z.string().nullish(),
+    amount:z.number().nullish(),
+    advancePaid:z.number().nullish(),
+    isUrgent:z.boolean().nullish(),
+    notes:z.string().nullish(),
+    items:z.array(z.object({
+        name:z.string().trim(),
+        quantity:z.number(),
+        unit:z.string().nullish(),
+    })).nullish()
+  
+})
+
 
 export type ResumeDecision = z.infer<typeof ResumeDecision>;
 export type OrderStatusValue = z.infer<typeof OrderStatus>;

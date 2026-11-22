@@ -1,158 +1,167 @@
-import {tool} from "langchain";
-import { ListOrdersToolInput , OrderIdParams, CreateOrderToolInput, createOrderInput, ResumeDecision, UpdateStatusToolInput } from "../validation/order.schema.js";
-import { listOrders, getOrder, createOrder, updateOrderStatus, deleteOrder } from "../services/orderService.js";
-import { z } from "zod";
+import { tool } from "langchain";
+import {
+  ListOrdersToolInput,
+  OrderIdParams,
+  CreateOrderToolInput,
+  createOrderInput,
+  ResumeDecision,
+  UpdateStatusToolInput,
+  UpdateOrderToolInput,
+} from "../validation/order.schema.js";
+import {
+  listOrders,
+  getOrder,
+  createOrder,
+  updateOrderStatus,
+  deleteOrder,
+  updateOrder,
+} from "../services/orderService.js";
+import {  z } from "zod";
 import { interrupt, isGraphInterrupt } from "@langchain/langgraph";
 import { ALLOWED_TRANSITIONS } from "../services/orderService.js";
 import type { RunnableConfig } from "@langchain/core/runnables";
+import type { OrderChanges } from "../types/order.js";
 
-function getToolUserId(config:RunnableConfig): string | null{
+
+function getToolUserId(config: RunnableConfig): string | null {
   const userId = config?.configurable?.userId;
   return typeof userId === "string" ? userId : null;
 }
 
+export const listOrdersTool = tool(
+  async (input, config) => {
+    try {
+      const userId = getToolUserId(config);
+      if (!userId) return "Error: no signed-in user for this request.";
+      const filters = {
+        status: input.status ?? undefined,
+        due: input.due ?? undefined,
+        customer: input.customer?.trim() || undefined,
+      };
 
-export const  listOrdersTool = tool(
-    async (input,config) => {
-        try{
-          const userId =getToolUserId(config);
-          if(!userId) return "Error: no signed-in user for this request.";
-            const filters ={
-                status:input.status ?? undefined,
-                due:input.due ?? undefined,
-                customer:input.customer?.trim() || undefined,
-            }
+      const orders = await listOrders(userId, filters);
+      if (orders.length === 0) {
+        return "No orders match these filters.";
+      }
+      const summary = orders.map((o) => ({
+        id: o.id,
+        customer: o.customer.name,
+        dueDate: o.dueDate,
+        status: o.status,
+        items: o.items.map((i) => `${i.quantity} ${i.unit ?? ""} ${i.name}`),
+        priority: o.priority?.level ?? null,
+        reasons: o.priority?.reasons ?? [],
+      }));
 
-            const orders = await listOrders(userId,filters);
-            if(orders.length === 0){
-                return "No orders match these filters."
-            }
-            const summary = orders.map((o) =>({
-                
-                    id: o.id,
-                    customer: o.customer.name,
-                    dueDate:o.dueDate,
-                    status:o.status,
-                    items:o.items.map((i)=> `${i.quantity} ${i.unit ?? ""} ${i.name}`),
-                    priority:o.priority?.level ?? null,
-                    reasons:o.priority?.reasons ?? []
-                
-            }));
-
-            return JSON.stringify(summary);
-
-
-        } catch (err) {
-            return `Error: list_orders failed:${err instanceof Error ? err.message:String(err)}`
-
-        }
-
-    },
-    {
-        name:"list_orders",
-        description:"Returns the shop's orders with order id, customer name, items, due date, status and priority (level + reasons), sorted by due date. Optional filters: due can be today (India time), overdue (past due, not delivered or cancelled) or upcoming (after today); status can be new, in_progress, ready, delivered or cancelled; customer filters by customer name (partial and case-insensitive, so 'mehta' matches 'Mehta Traders'). No filters returns all orders. Use it for questions about what is due, late, pending, ready, most urgent, or about a specific customer's orders.",
-        schema:ListOrdersToolInput,
+      return JSON.stringify(summary);
+    } catch (err) {
+      return `Error: list_orders failed:${err instanceof Error ? err.message : String(err)}`;
     }
+  },
+  {
+    name: "list_orders",
+    description:
+      "Returns the shop's orders with order id, customer name, items, due date, status and priority (level + reasons), sorted by due date. Optional filters: due can be today (India time), overdue (past due, not delivered or cancelled) or upcoming (after today); status can be new, in_progress, ready, delivered or cancelled; customer filters by customer name (partial and case-insensitive, so 'mehta' matches 'Mehta Traders'). No filters returns all orders. Use it for questions about what is due, late, pending, ready, most urgent, or about a specific customer's orders.",
+    schema: ListOrdersToolInput,
+  },
+);
 
-)
+export const getOrderTool = tool(
+  async ({ id }, config) => {
+    try {
+      const userId = getToolUserId(config);
+      if (!userId) return "Error: no signed-in user for this request.";
+      const result = await getOrder(userId, id);
+      if (!result.ok) {
+        return `Order ${id} not found`;
+      }
 
-export const  getOrderTool = tool(
-    async({id},config) =>{
-        try{
-          const userId = getToolUserId(config);
-          if(!userId) return "Error: no signed-in user for this request."
-        const result = await getOrder(userId,id);
-        if(!result.ok){
-            return `Order ${id} not found`;
-        }
+      const o = result.order;
 
-        const o = result.order;
-
-        const summary = {
-             id: o.id,
-                    customer: o.customer.name,
-                    phone:o.customer.phone,
-                    amount:o.amount,
-                    advancePaid:o.advancePaid,
-                    notes:o.notes,
-                    dueDate:o.dueDate,
-                    status:o.status,
-                    items:o.items.map((i)=> `${i.quantity} ${i.unit ?? ""} ${i.name}`),
-                    priority:o.priority?.level ?? null,
-                    reasons:o.priority?.reasons ?? []
-
-        }
-        return JSON.stringify(summary);
-    } catch(err){
-         return `Error: get_order failed:${err instanceof Error ? err.message:String(err)}`
+      const summary = {
+        id: o.id,
+        customer: o.customer.name,
+        phone: o.customer.phone,
+        amount: o.amount,
+        advancePaid: o.advancePaid,
+        notes: o.notes,
+        dueDate: o.dueDate,
+        status: o.status,
+        items: o.items.map((i) => `${i.quantity} ${i.unit ?? ""} ${i.name}`),
+        priority: o.priority?.level ?? null,
+        reasons: o.priority?.reasons ?? [],
+      };
+      return JSON.stringify(summary);
+    } catch (err) {
+      return `Error: get_order failed:${err instanceof Error ? err.message : String(err)}`;
     }
-
-    },
-    {
-        name:"get_order",
-        description:"Returns full details of one order by its id: customer name and phone, items, due date, status, amount, advance paid, notes, and priority (level + reasons). Use it when the user asks about one specific order by number, or wants more details about an order found with list_orders.",
-        schema:OrderIdParams,
-    }
-)
+  },
+  {
+    name: "get_order",
+    description:
+      "Returns full details of one order by its id: customer name and phone, items, due date, status, amount, advance paid, notes, and priority (level + reasons). Use it when the user asks about one specific order by number, or wants more details about an order found with list_orders.",
+    schema: OrderIdParams,
+  },
+);
 
 export const createOrderTool = tool(
-    async( input , config) =>{
-        try{
-          const userId = getToolUserId(config);
-          if(!userId)  return "Error: no signed-in user for this request.";
+  async (input, config) => {
+    try {
+      const userId = getToolUserId(config);
+      if (!userId) return "Error: no signed-in user for this request.";
 
-            const draft = {
-                customerName:input.customerName,
-                customerPhone:input.customerPhone ?? undefined,
-                dueDate:input.dueDate ?? undefined,
-                amount:input.amount ?? undefined,
-                advancePaid:input.advancePaid ?? undefined,
-                isUrgent:input.isUrgent ?? undefined,
-                notes:input.notes ?? undefined,
-                items:input.items.map((item)=>({
-                    name:item.name,
-                    quantity:item.quantity,
-                    unit:item.unit ?? undefined
-                })),
-            }
-            const parsed = createOrderInput.safeParse(draft);
-            if(!parsed.success){
-                 return `Cannot create the order: ${z.prettifyError(parsed.error)} Ask the user to provide or correct this.`;
-            }
-            const raw = interrupt({ type:"order_approval", draft:parsed.data});
+      const draft = {
+        customerName: input.customerName,
+        customerPhone: input.customerPhone ?? undefined,
+        dueDate: input.dueDate ?? undefined,
+        amount: input.amount ?? undefined,
+        advancePaid: input.advancePaid ?? undefined,
+        isUrgent: input.isUrgent ?? undefined,
+        notes: input.notes ?? undefined,
+        items: input.items.map((item) => ({
+          name: item.name,
+          quantity: item.quantity,
+          unit: item.unit ?? undefined,
+        })),
+      };
+      const parsed = createOrderInput.safeParse(draft);
+      if (!parsed.success) {
+        return `Cannot create the order: ${z.prettifyError(parsed.error)} Ask the user to provide or correct this.`;
+      }
+      const raw = interrupt({ type: "order_approval", draft: parsed.data });
 
-            const descision = ResumeDecision.safeParse(raw);
-            if(!descision.success){
-                return "The owner's decision was invalid, so nothing was saved.";
-            }
-            if(descision.data.action === "cancel"){
-                  return "The owner cancelled this order. Nothing was saved.";
-            }
-            const finalOrder = descision.data.action === "edit" ? descision.data.draft : parsed.data;
+      const descision = ResumeDecision.safeParse(raw);
+      if (!descision.success) {
+        return "The owner's decision was invalid, so nothing was saved.";
+      }
+      if (descision.data.action === "cancel") {
+        return "The owner cancelled this order. Nothing was saved.";
+      }
+      const finalOrder =
+        descision.data.action === "edit" ? descision.data.draft : parsed.data;
 
-            const order = await createOrder(userId,finalOrder);
-            return `Order #${order.id} created for ${order.customer.name}`
-
-        }catch(err){
-            if(isGraphInterrupt(err)) throw err;
-             return `Error: create_order failed: ${err instanceof Error ? err.message : String(err)}`;
-        }
-
-    },
-{
+      const order = await createOrder(userId, finalOrder);
+      return `Order #${order.id} created for ${order.customer.name}`;
+    } catch (err) {
+      if (isGraphInterrupt(err)) throw err;
+      return `Error: create_order failed: ${err instanceof Error ? err.message : String(err)}`;
+    }
+  },
+  {
     name: "create_order",
-    description: "Creates a new order for the shop. Calling it shows the owner a draft for approval; the order is saved only after the owner approves (or edits) it, and nothing is saved if they cancel. Only call it when you know the customer name and at least one item with a quantity; if anything required is missing, ask the user first instead of guessing. Convert relative dates (aaj, kal, parso, weekdays) into YYYY-MM-DD using today's date. Set isUrgent to true only if the user says it is urgent (urgent, jaldi, aaj hi). Leave out any field you don't know instead of sending null or a guess. After the tool returns, tell the user the result: the new order number, or that it was cancelled.",
+    description:
+      "Creates a new order for the shop. Calling it shows the owner a draft for approval; the order is saved only after the owner approves (or edits) it, and nothing is saved if they cancel. Only call it when you know the customer name and at least one item with a quantity; if anything required is missing, ask the user first instead of guessing. Convert relative dates (aaj, kal, parso, weekdays) into YYYY-MM-DD using today's date. Set isUrgent to true only if the user says it is urgent (urgent, jaldi, aaj hi). Leave out any field you don't know instead of sending null or a guess. After the tool returns, tell the user the result: the new order number, or that it was cancelled.",
     schema: CreateOrderToolInput,
   },
+);
 
-)
-
-export const updateStatusTool = tool(                                   // ← renamed
+export const updateStatusTool = tool(
+  // ← renamed
   async ({ id, status }, config) => {
-    try {              
+    try {
       const userId = getToolUserId(config);
-       if(!userId) return "Error: no signed-in user for this request."                                                 // ← try starts
-      const result = await getOrder(userId,id);
+      if (!userId) return "Error: no signed-in user for this request."; // ← try starts
+      const result = await getOrder(userId, id);
       if (!result.ok) {
         return `Order #${id} not found. Use list_orders to find the correct order.`;
       }
@@ -176,48 +185,36 @@ export const updateStatusTool = tool(                                   // ← r
         return `The owner's decision was invalid. Nothing changed; order #${id} is still ${current}.`;
       }
       if (decision.data.action === "cancel") {
-        return `The owner rejected this change. Order #${id} is still ${current}.`;      // ← clearer
+        return `The owner rejected this change. Order #${id} is still ${current}.`; // ← clearer
       }
       if (decision.data.action === "edit") {
-        return `Editing is not supported for status changes. Nothing changed; order #${id} is still ${current}. Ask the owner which status they want.`;  // ← "status changed" removed
+        return `Editing is not supported for status changes. Nothing changed; order #${id} is still ${current}. Ask the owner which status they want.`; // ← "status changed" removed
       }
 
-      const updated = await updateOrderStatus(userId,id, status);
+      const updated = await updateOrderStatus(userId, id, status);
       if (!updated.ok) {
         return `Could not update order #${id}: ${updated.code}. Nothing changed.`;
       }
 
-      return `Order #${id} (${result.order.customer.name}) changed from ${current} to ${status}.`;  // ← success line
-    } catch (err) {                                                     // ← catch
+      return `Order #${id} (${result.order.customer.name}) changed from ${current} to ${status}.`; // ← success line
+    } catch (err) {
+      // ← catch
       if (isGraphInterrupt(err)) throw err;
       return `Error: update_status failed: ${err instanceof Error ? err.message : String(err)}`;
     }
   },
   {
     name: "update_status",
-    description: "Change the status of an existing order. Needs the order id. " +
-  "If the owner gives a customer name, item or date instead of an id, first use list_orders to find the order; " +
-  "if more than one order matches, ask the owner which one before calling this tool. " +
-  "Map the owner's words to a status: 'kaam shuru' / 'start' = in_progress, 'ready' / 'ban gaya' = ready, " +
-  "'de diya' / 'deliver ho gaya' = delivered, 'cancel' = cancelled. " +
-  "The owner must approve the change before it is saved. After the tool returns, tell the owner exactly what the result says.",
-    schema: UpdateStatusToolInput
-  }
+    description:
+      "Change the status of an existing order. Needs the order id. " +
+      "If the owner gives a customer name, item or date instead of an id, first use list_orders to find the order; " +
+      "if more than one order matches, ask the owner which one before calling this tool. " +
+      "Map the owner's words to a status: 'kaam shuru' / 'start' = in_progress, 'ready' / 'ban gaya' = ready, " +
+      "'de diya' / 'deliver ho gaya' = delivered, 'cancel' = cancelled. " +
+      "The owner must approve the change before it is saved. After the tool returns, tell the owner exactly what the result says.",
+    schema: UpdateStatusToolInput,
+  },
 );
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 export const deleteOrderTool = tool(
   async ({ id }, config) => {
@@ -237,7 +234,11 @@ export const deleteOrderTool = tool(
         customerName: o.customer.name,
         status: o.status,
         dueDate: o.dueDate,
-        items: o.items.map((i) => ({ name: i.name, quantity: i.quantity, unit: i.unit ?? undefined })),
+        items: o.items.map((i) => ({
+          name: i.name,
+          quantity: i.quantity,
+          unit: i.unit ?? undefined,
+        })),
       });
 
       const decision = ResumeDecision.safeParse(raw);
@@ -268,7 +269,127 @@ export const deleteOrderTool = tool(
       "if more than one order matches, ask the owner which one before calling this tool. " +
       "The owner must approve the deletion before it happens. After the tool returns, tell the owner exactly what the result says.",
     schema: OrderIdParams,
-  }
+  },
 );
 
-export const VoiceDeskTools = [listOrdersTool,getOrderTool,createOrderTool,updateStatusTool,deleteOrderTool];
+export const updateOrderTool = tool(
+  async ( input , config) => {
+    try{
+    const userId = getToolUserId(config);
+    if (!userId) return "Error: no signed-in user for this request.";
+
+    const changes: OrderChanges = {
+      dueDate: input.dueDate ?? undefined,
+      amount: input.amount ?? undefined,
+      advancePaid: input.advancePaid ?? undefined,
+      isUrgent: input.isUrgent ?? undefined,
+      notes: input.notes ?? undefined,
+      customerPhone: input.customerPhone ?? undefined,
+      items: input.items?.map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit ?? undefined,
+      })),
+    };
+    const current = await getOrder(userId, input.orderId);
+    if (!current.ok) {
+      return `Order #${input.orderId} not found.`;
+    }
+
+    const order = current.order;
+
+    const formatItems = (
+      items: { name: string; quantity: number; unit?: string | null }[],
+    ) =>
+      items
+        .map((i) => `${i.name} X ${i.quantity}${i.unit ? " " + i.unit : ""}`)
+        .join(" ,");
+
+    const diff: { field: string; from: string; to: string }[] = [];
+
+    function addChange(field: string, from: unknown, to: unknown) {
+      if (to === undefined) return;
+      const fromText = from === null || from === undefined ? "_" : String(from);
+      const toText = String(to);
+      if (fromText !== toText) diff.push({ field, from: fromText, to: toText });
+    }
+
+    addChange("Due date", order?.dueDate, changes.dueDate);
+    addChange("Amount", order?.amount, changes.amount);
+    addChange("Advance paid", order?.advancePaid, changes.advancePaid);
+    addChange(
+      "Urgent",
+      order?.isUrgent ? "Yes" : "No",
+      changes.isUrgent === undefined
+        ? undefined
+        : changes.isUrgent
+          ? "Yes"
+          : "No",
+    );
+    addChange("Notes", order?.notes, changes.notes);
+    addChange("Phone", order?.customer.phone, changes.customerPhone);
+
+    if (changes.items) {
+      addChange(
+        "Items",
+        formatItems(order?.items ?? []),
+        formatItems(changes.items ?? []),
+      );
+    }
+
+    if (diff.length === 0) {
+      return `Nothing to update:order #${order?.id} already has these values.`;
+    }
+
+    const raw = interrupt({
+      type:"update_approval",
+      orderId:order.id,
+      customerName: order.customer.name,
+      changes:diff,
+    });
+
+    const decision = ResumeDecision.safeParse(raw);
+    if (!decision.success) {
+  return `The owner's decision was invalid. Nothing changed on order #${order.id}.`;
+}
+if (decision.data.action === "cancel") {
+  return `The owner rejected these changes. Order #${order.id} was not changed.`;
+}
+if (decision.data.action === "edit") {
+  return `Editing is not supported for order updates. Nothing changed. Ask the owner what they want to change.`;
+}    
+
+const updated = await updateOrder(userId, order.id, changes);
+if(updated.status === "not_found"){
+  return `Order #${order.id} not found. Nothing changed.`;
+}
+const summary = diff.map((d) => `${d.field}: ${d.from} → ${d.to}`).join(",");
+return `Order #${order.id} (${order.customer.name}) updated. ${summary}.`
+
+
+
+  } catch(err){
+      if (isGraphInterrupt(err)) throw err;
+  return `Error: update_order failed: ${err instanceof Error ? err.message : String(err)}`;
+}
+  },
+  
+  {
+    name: "update_order",
+    description:
+      "Change details of an existing order: due date, amount, advance paid, urgent, notes, customer phone, or items. " +
+      "Find the order first with list_orders and pass its id. " +
+      "When changing items, send the FULL updated items list (unchanged items too). " +
+      "If several orders match, ask the owner which one before calling this tool.",
+    schema: UpdateOrderToolInput,
+  },
+);
+
+export const VoiceDeskTools = [
+  listOrdersTool,
+  getOrderTool,
+  createOrderTool,
+  updateStatusTool,
+  deleteOrderTool,
+  updateOrderTool
+];

@@ -64,8 +64,15 @@ export type ResumeDecision =
     dueDate:string | null;
     items:OrderItem[];
   }
+  export type UpdateApproval = {
+  type: "update_approval";
+  orderId: number;
+  customerName: string;
+  changes: { field: string; from: string; to: string }[];
+};
 
-  export type Approval = OrderApproval | StatusApproval | DeleteApproval;
+  export type Approval = OrderApproval | StatusApproval | DeleteApproval| UpdateApproval;
+  
 
   export type PriorityLevel = "HIGH" | "MEDIUM" | "LOW";
 
