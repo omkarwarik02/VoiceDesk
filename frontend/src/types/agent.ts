@@ -56,7 +56,16 @@ export type ResumeDecision =
     to:OrderStatus;
   }
 
-  export type Approval = OrderApproval | StatusApproval;
+  export type DeleteApproval = {
+    type:"delete_approval";
+    orderId:number;
+    customerName:string;
+    status:OrderStatus;
+    dueDate:string | null;
+    items:OrderItem[];
+  }
+
+  export type Approval = OrderApproval | StatusApproval | DeleteApproval;
 
   export type PriorityLevel = "HIGH" | "MEDIUM" | "LOW";
 

@@ -76,6 +76,28 @@ const [Editing, setEditing] = useState(false);
             )}
           </CardContent>
         </>
+      ) : approval.type === "delete_approval" ? (
+        <>
+          <CardHeader>
+            <CardDescription>Delete order: needs approval</CardDescription>
+            <CardTitle>
+              Order #{approval.orderId} · {approval.customerName}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <ul className="space-y-1">
+              {approval.items.map((item, i) => (
+                <li key={i}>
+                  {item.name} X {item.quantity} {item.unit ?? ""}
+                </li>
+              ))}
+            </ul>
+            <p className="text-sm text-muted">
+              Due:{formatDate(approval.dueDate ?? undefined)}. Status: {approval.status}
+            </p>
+            <p className="text-sm text-red-400">This permanently deletes the order.</p>
+          </CardContent>
+        </>
       ) : (
         <>
           <CardHeader>
@@ -92,8 +114,12 @@ const [Editing, setEditing] = useState(false);
         </>
       )}
       <CardFooter>
-        <Button disabled={busy} onClick={() => onDecide({ action: "approve" })}>
-          Approve
+        <Button
+          variant={approval.type === "delete_approval" ? "destructive" : "default"}
+          disabled={busy}
+          onClick={() => onDecide({ action: "approve" })}
+        >
+          {approval.type === "delete_approval" ? "Delete" : "Approve"}
         </Button>
         {approval.type === "order_approval" && (
           <Button variant="outline" disabled={busy} onClick={() =>setEditing(true)}>

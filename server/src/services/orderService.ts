@@ -196,3 +196,15 @@ export async function getOrder(userId:string,id:number){
 
 
 }
+
+export async function deleteOrder(userId: string, id: number) {
+  const [deleted] = await db
+    .delete(orders)
+    .where(and(eq(orders.id, id), eq(orders.userId, userId)))
+    .returning();
+
+  if (!deleted) {
+    return { ok: false as const, code: "NOT_FOUND" as const };
+  }
+  return { ok: true as const, order: deleted };
+}

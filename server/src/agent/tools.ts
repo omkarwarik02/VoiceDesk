@@ -1,6 +1,6 @@
 import {tool} from "langchain";
 import { ListOrdersToolInput , OrderIdParams, CreateOrderToolInput, createOrderInput, ResumeDecision, UpdateStatusToolInput } from "../validation/order.schema.js";
-import { listOrders, getOrder, createOrder, updateOrderStatus } from "../services/orderService.js";
+import { listOrders, getOrder, createOrder, updateOrderStatus, deleteOrder } from "../services/orderService.js";
 import { z } from "zod";
 import { interrupt, isGraphInterrupt } from "@langchain/langgraph";
 import { ALLOWED_TRANSITIONS } from "../services/orderService.js";
@@ -219,4 +219,56 @@ export const updateStatusTool = tool(                                   // ← r
 
 
 
-export const VoiceDeskTools = [listOrdersTool,getOrderTool,createOrderTool,updateStatusTool];
+export const deleteOrderTool = tool(
+  async ({ id }, config) => {
+    try {
+      const userId = getToolUserId(config);
+      if (!userId) return "Error: no signed-in user for this request.";
+
+      const result = await getOrder(userId, id);
+      if (!result.ok) {
+        return `Order #${id} not found. Use list_orders to find the correct order.`;
+      }
+      const o = result.order;
+
+      const raw = interrupt({
+        type: "delete_approval",
+        orderId: id,
+        customerName: o.customer.name,
+        status: o.status,
+        dueDate: o.dueDate,
+        items: o.items.map((i) => ({ name: i.name, quantity: i.quantity, unit: i.unit ?? undefined })),
+      });
+
+      const decision = ResumeDecision.safeParse(raw);
+      if (!decision.success) {
+        return `The owner's decision was invalid. Nothing was deleted; order #${id} still exists.`;
+      }
+      if (decision.data.action !== "approve") {
+        return `The owner did not approve the deletion. Order #${id} was not deleted.`;
+      }
+
+      const deleted = await deleteOrder(userId, id);
+      if (!deleted.ok) {
+        return `Could not delete order #${id}: ${deleted.code}.`;
+      }
+      return `Order #${id} (${o.customer.name}) was permanently deleted.`;
+    } catch (err) {
+      if (isGraphInterrupt(err)) throw err;
+      return `Error: delete_order failed: ${err instanceof Error ? err.message : String(err)}`;
+    }
+  },
+  {
+    name: "delete_order",
+    description:
+      "Permanently delete an existing order. Needs the order id. " +
+      "Only use it when the owner clearly asks to delete or remove an order (delete, hata do, mita do, remove). " +
+      "If the owner only wants to cancel an order, use update_status with cancelled instead. " +
+      "If the owner gives a customer name, item or date instead of an id, first use list_orders to find the order; " +
+      "if more than one order matches, ask the owner which one before calling this tool. " +
+      "The owner must approve the deletion before it happens. After the tool returns, tell the owner exactly what the result says.",
+    schema: OrderIdParams,
+  }
+);
+
+export const VoiceDeskTools = [listOrdersTool,getOrderTool,createOrderTool,updateStatusTool,deleteOrderTool];
