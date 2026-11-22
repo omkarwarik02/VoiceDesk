@@ -20,18 +20,11 @@ import { z } from "zod";
 import type { StructuredToolInterface } from "@langchain/core/tools";
 import { VoiceDeskTools } from "./tools.js";
 import { todayLabelIST, upcomingDatesIST } from "../utils/date.js";
-import { PostgresSaver} from "@langchain/langgraph-checkpoint-postgres"
+import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import { pool } from "../db/client.js";
 import { trimMessages } from "@langchain/core/messages";
 
-
-
-
-
-
-
-
-export const checkpointer = new PostgresSaver(pool)
+export const checkpointer = new PostgresSaver(pool);
 
 const AgentState = new StateSchema({
   messages: MessagesValue,
@@ -65,14 +58,13 @@ Use update_order when the owner changes details of an existing order, for exampl
 For due dates: "kal" means tomorrow and "parso" means the day after tomorrow (never the past). A due date can never be before today.
 
 `;
-
-
 }
 
 const model = new ChatGroq({
   apiKey: process.env.GROQ_API_KEY,
-  model: "openai/gpt-oss-120b",
+  model: "llama-3.3-70b-versatile",
   temperature: 0,
+  
 });
 
 const modelWithTools = model.bindTools(VoiceDeskTools);
@@ -94,13 +86,12 @@ const toolsByName: Record<string, StructuredToolInterface> = Object.fromEntries(
 );
 
 const agentNode: GraphNode<typeof AgentState> = async (state) => {
-  const recent = await trimMessages(state.messages,{
-    maxTokens:20,
-    strategy:"last",
-    tokenCounter:(msgs) =>msgs.length,
-    startOn:"human",
-
-  })
+  const recent = await trimMessages(state.messages, {
+    maxTokens: 20,
+    strategy: "last",
+    tokenCounter: (msgs) => msgs.length,
+    startOn: "human",
+  });
 
   const response = await modelWithTools.invoke([
     new SystemMessage(buildSystemPrompt()),
@@ -109,7 +100,7 @@ const agentNode: GraphNode<typeof AgentState> = async (state) => {
   return { messages: [response] };
 };
 
-const toolsNode: GraphNode<typeof AgentState> = async (state,config) => {
+const toolsNode: GraphNode<typeof AgentState> = async (state, config) => {
   const last = state.messages.at(-1);
   if (!last || !AIMessage.isInstance(last) || !last.tool_calls?.length) {
     return {};
@@ -138,9 +129,9 @@ const toolsNode: GraphNode<typeof AgentState> = async (state,config) => {
         content = `Error: unknown tool "${call.name}". Available tools: ${Object.keys(toolsByName).join(", ")}.`;
       } else {
         try {
-          content = String(await tool.invoke(call.args,config));
+          content = String(await tool.invoke(call.args, config));
         } catch (err) {
-          if(isGraphInterrupt(err)) throw err;
+          if (isGraphInterrupt(err)) throw err;
           content = `Error: ${call.name} failed: ${err instanceof Error ? err.message : String(err)}`;
         }
       }
@@ -192,4 +183,4 @@ export const graph = new StateGraph(AgentState)
   .addConditionalEdges("agent", routeAfterAgent, ["tools", END])
   .addConditionalEdges("tools", routeAfterTools, ["agent", "final_answer"])
   .addEdge("final_answer", END)
-  .compile({ checkpointer});
+  .compile({ checkpointer });
