@@ -62,10 +62,14 @@ For due dates: "kal" means tomorrow and "parso" means the day after tomorrow (ne
 
 const model = new ChatGroq({
   apiKey: process.env.GROQ_API_KEY,
-  model: "llama-3.3-70b-versatile",
+  model: "openai/gpt-oss-120b",
   temperature: 0,
-  
+  reasoningEffort: "low",
 });
+// @langchain/groq (<=1.3.2) declares reasoningFormat but never reads it from
+// the constructor, so set the field directly. "hidden" makes Groq drop the
+// model's reasoning from the response entirely.
+model.reasoningFormat = "hidden";
 
 const modelWithTools = model.bindTools(VoiceDeskTools);
 
