@@ -18,14 +18,14 @@ const steps = [
 
 export default function HowItWorks(){
     return(
-        <section id="how-it-works" aria-labelledby="how-title" className="px-6 py-24 md:py-32">
+        <section id="how-it-works" aria-labelledby="how-title" className="px-5 py-20 md:px-6 md:py-32">
             <div className="mx-auto max-w-6xl text-center">
                 <p className="text-xs uppercase tracking-[0.2em] text-muted">How it works</p>
-                <h2 id="how-title" className="mt-5 font-display text-4xl font-semibold">From a sentence to an order in three steps.</h2>
-            <div className="mt-16 grid gap-12 text-left md:grid-cols-3 md:gap-0 md:divide-x md:divide-line">
+                <h2 id="how-title" className="mt-5 text-balance font-display text-3xl font-semibold md:text-4xl">From a sentence to an order in three steps.</h2>
+            <div className="mt-12 md:mt-16 grid gap-12 text-left md:grid-cols-3 md:gap-0 md:divide-x md:divide-line">
                 {steps.map((step) =>(
                     <div key={step.number} className="md:px-9">
-                        <p className="bg-linear-to-r from-[#FFD9A8] via-[#FF5FA2] to-[#5B8CFF] bg-clip-text font-display text-7xl text-transparent">{step.number}</p>
+                        <p className="bg-linear-to-r from-[#FFD9A8] via-[#FF5FA2] to-[#5B8CFF] bg-clip-text font-display text-6xl text-transparent md:text-7xl">{step.number}</p>
                         <h3 className="mt-6 font-display text-2xl font-semibold">{step.title}</h3>
                         <p className="mt-3 text-muted">{step.text}</p>
                         

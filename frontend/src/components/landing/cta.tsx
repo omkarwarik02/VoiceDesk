@@ -5,16 +5,16 @@ export default function Cta() {
     <section
       id="cta"
       aria-labelledby="cta-title"
-      className="px-6 py-24 md:py-32"
+      className="px-5 py-20 md:px-6 md:py-32"
     >
-      <div className="mx-auto w-full max-w-4xl rounded-3xl border border-line bg-surface px-6 py-16 text-center">
-        <h2 id="cta-title" className="font-display text-4xl font-semibold">
+      <div className="mx-auto w-full max-w-4xl rounded-3xl border border-line bg-surface px-5 py-12 text-center md:px-6 md:py-16">
+        <h2 id="cta-title" className="font-display text-3xl font-semibold md:text-4xl">
           Your next order is
         </h2>
-        <h2 className=" font-display text-4xl font-semibold">
+        <h2 className="font-display text-3xl font-semibold md:text-4xl">
           one sentence away
         </h2>
-        <p className="mt-4  text-lg text-muted">
+        <p className="mt-4 text-base text-muted md:text-lg">
           Sign in and try with your own orders.
         </p>
         <div className=" mt-8 flex flex-wrap gap-4 justify-center items-center">

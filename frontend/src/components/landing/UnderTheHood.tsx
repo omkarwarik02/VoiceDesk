@@ -40,17 +40,17 @@ const highlighted = ["LangGraph agent", "Your approval"];
 export default function UnderTheHood(){
 
     return(
-        <section id="underthehood" aria-labelledby="underthehood-title" className="px-6 py-24 md:py-32">
+        <section id="underthehood" aria-labelledby="underthehood-title" className="px-5 py-20 md:px-6 md:py-32">
             <div className="mx-auto max-w-6xl text-center">
                 <p className="text-xs uppercase tracking-[0.2em] text-muted">under the hood</p>
-                <h2 id="underthehood-title" className="mt-5 font-display text-4xl font-semibold">A real agent, not just a chatbot.</h2>
-                <div className="mt-16 flex flex-wrap items-center justify-center gap-3">
+                <h2 id="underthehood-title" className="mt-5 text-balance font-display text-3xl font-semibold md:text-4xl">A real agent, not just a chatbot.</h2>
+                <div className="mt-12 flex flex-wrap items-center justify-center gap-2 md:mt-16 md:gap-3">
                     {pipeline.map((step,index)=>(
                         <Fragment key={step}>
                             <span
                             className={
                                 highlighted.includes(step)
-                                 ? "rounded-full bg-linear-to-r from-[#FFD9A8] via-[#FF5FA2] to-[#5B8CFF] px-5 py-2.5 font-semibold text-[#0b0b0f]"  : "rounded-full border border-line bg-surface px-5 py-2.5"
+                                 ? "rounded-full bg-linear-to-r from-[#FFD9A8] via-[#FF5FA2] to-[#5B8CFF] px-4 py-2 text-sm font-semibold text-[#0b0b0f] md:px-5 md:py-2.5 md:text-base"  : "rounded-full border border-line bg-surface px-4 py-2 text-sm md:px-5 md:py-2.5 md:text-base"
                             }
                             >
                                 {step}
@@ -61,9 +61,9 @@ export default function UnderTheHood(){
                     ))}
                    
                 </div>
-                <div className="mt-16 grid gap-px overflow-hidden rounded-2xl border border-line bg-line text-left md:grid-cols-2 ">
+                <div className="mt-12 md:mt-16 grid gap-px overflow-hidden rounded-2xl border border-line bg-line text-left md:grid-cols-2 ">
                     {points.map((point)=>(
-                        <div key={point.title} className="bg-bg p-8">
+                        <div key={point.title} className="bg-bg p-6 md:p-8">
                             <h3 className="font-display text-xl font-semibold">{point.title}</h3>
                             <p className="mt-3 text-muted">{point.text}</p>
                         </div>

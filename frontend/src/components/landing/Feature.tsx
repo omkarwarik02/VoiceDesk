@@ -49,16 +49,16 @@ const features: Feature[] = [
 export default function Feature(){
 
     return(
-        <section id="features" aria-labelledby="features-title" className="px-6 py-24 md:py-32">
+        <section id="features" aria-labelledby="features-title" className="px-5 py-20 md:px-6 md:py-32">
             <div className="mx-auto max-w-6xl text-center">
                 <p className="text-xs uppercase tracking-[0.2em] text-muted">Features</p>
-                <h2 id="features-title" className="mt-5 font-display text-4xl font-semibold">Everything your order desk needs.</h2>
+                <h2 id="features-title" className="mt-5 text-balance font-display text-3xl font-semibold md:text-4xl">Everything your order desk needs.</h2>
                 <p className="mt-4 text-lg text-muted">Nothing it doesn't.</p>
-                <div className="mt-16 grid gap-px overflow-hidden rounded-2xl border border-line bg-line text-left md:grid-cols-2 lg:grid-cols-3">
+                <div className="mt-12 md:mt-16 grid gap-px overflow-hidden rounded-2xl border border-line bg-line text-left md:grid-cols-2 lg:grid-cols-3">
                     {features.map((feature)=>{
                         const Icon = feature.icon;
                         return(
-                            <div key={feature.title} className="bg-bg p-8">
+                            <div key={feature.title} className="bg-bg p-6 md:p-8">
                                 <Icon className="h-7 w-7 text-[#FF5FA2]" aria-hidden="true" />
                                  <h3 className="mt-6 font-display text-xl font-semibold">{feature.title}</h3>
                                  <p className="mt-3 text-muted">{feature.text}</p>

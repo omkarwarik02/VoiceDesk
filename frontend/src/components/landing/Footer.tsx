@@ -3,11 +3,11 @@ import logo from "../../assets/voicedesk.png";
 
 export default function Footer(){
     return (
-        <footer className="px-6 pb-10 mt-10">
-          <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 border-t border-line pt-8 text-sm text-muted md:flex-row md:justify-between">
+        <footer className="mt-10 px-5 pb-10 md:px-6">
+          <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 border-t border-line pt-8 text-center text-sm text-muted md:flex-row md:justify-between md:text-left">
          <img src={logo} alt="VoiceDesk" className="h-10 w-auto" />
             <p>Built by Omkar Warik</p>
-            <div className=" flex gap-5">
+            <div className="flex flex-wrap justify-center gap-x-5 gap-y-2">
                 <a
             href="https://github.com/omkarwarik02/VoiceDesk"
             target="_blank"
